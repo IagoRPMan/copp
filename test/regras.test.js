@@ -86,6 +86,10 @@ test('só a Contabilidade libera; quem imprimiu acompanha sem aprovar', async ()
   assert.equal(l.responsavel_id, ger.id);
 
   assert.equal((await pedir(ger, '/lancamentos/' + l.id)).status, 200, 'quem imprimiu consegue ver');
+  const listaGer = await pedir(ger, '/lancamentos');
+  assert.equal(listaGer.status, 200);
+  assert.doesNotMatch(await listaGer.text(), /data-botao-lote/, 'quem imprimiu não vê o botão de liberar');
+  assert.match(await (await pedir(conta, '/lancamentos')).text(), /data-botao-lote/, 'a Contabilidade vê');
   await enviar(ger, '/lancamentos/lote', { acao: 'liberar', ids: String(l.id), ['d_' + l.id]: 'CIRCULAR', ['q_' + l.id]: '3' });
   assert.equal(status(l.id), 'pendente', 'quem imprimiu não libera');
   await enviar(ger, '/lancamentos/' + l.id + '/cancelar', { motivo: 'não quero' });

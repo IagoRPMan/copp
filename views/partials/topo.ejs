@@ -4,43 +4,47 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><%= titulo %> · COPP</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<%- include('fontes') %>
 <link rel="stylesheet" href="/style.css?v=<%= versao %>">
 <script src="/app.js?v=<%= versao %>" defer></script>
 </head>
 <body>
 <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<%- include('icones') %>
 <div class="casca">
 <aside class="lateral">
-  <a class="marca" href="/">
-    <span class="registro" aria-hidden="true"><i class="c"></i><i class="m"></i><i class="y"></i><i class="k"></i></span>
-    <span class="marca-nome">COPP</span>
-    <span class="marca-sub">Cópias e impressões</span>
+  <a class="marca" href="/" aria-label="COPP, início">
+    <span class="marca-visto" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-visto"/></svg></span>
+    <span class="marca-texto"><span class="marca-nome">COPP</span><span class="marca-sub">Cópias e conduções</span></span>
   </a>
-  <% if (user) { const em = (p) => caminho.startsWith(p) ? ' class="ativo" aria-current="page"' : ''; %>
+  <% if (user) {
+       const em = (p) => caminho.startsWith(p) ? ' class="ativo" aria-current="page"' : '';
+       const icone = (n) => `<svg class="icone" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+       const confere = user.verTudo || user.conferir; %>
   <nav aria-label="Principal">
-    <% if (user.verRelatorios) { %><a href="/painel"<%- em('/painel') %>>Painel de pendências</a><% } %>
-    <% if (user.podeImportar) { %><a href="/importacoes"<%- em('/importacoes') %>>Importar do PaperCut</a><% } %>
-    <a href="/lancamentos"<%- em('/lancamentos') %>><%= user.verTudo ? 'Conferência' : 'Minha carteira' %></a>
-    <% if (user.verRelatorios) { %><a href="/relatorios"<%- em('/relatorios') %>>Relatórios</a><% } %>
+    <span class="nav-titulo">Rotina</span>
+    <% if (user.verRelatorios) { %><a href="/painel"<%- em('/painel') %>><%- icone('painel') %>Painel do mês</a><% } %>
+    <% if (user.podeImportar) { %><a href="/importacoes"<%- em('/importacoes') %>><%- icone('importar') %>Importar do PaperCut</a><% } %>
+    <a href="/lancamentos"<%- em('/lancamentos') %>><%- icone('conferir') %><%= confere ? 'Conferência' : 'Meus lançamentos' %></a>
+    <% if (user.verRelatorios) { %><a href="/relatorios"<%- em('/relatorios') %>><%- icone('relatorio') %>Relatórios</a><% } %>
     <% if (user.admin) { %>
       <span class="nav-titulo">Cadastros</span>
-      <a href="/cadastros/condominios"<%- em('/cadastros/condominios') %>>Condomínios</a>
-      <a href="/cadastros/itens"<%- em('/cadastros/itens') %>>Itens e preços</a>
-      <a href="/cadastros/fechamento"<%- em('/cadastros/fechamento') %>>Fechamento do mês</a>
-      <a href="/cadastros/descricoes"<%- em('/cadastros/descricoes') %>>Descrições padrão</a>
-      <a href="/cadastros/departamentos"<%- em('/cadastros/departamentos') %>>Departamentos</a>
-      <a href="/cadastros/usuarios"<%- em('/cadastros/usuarios') %>>Usuários</a>
-      <a href="/cadastros/auditoria"<%- em('/cadastros/auditoria') %>>Auditoria</a>
+      <a href="/cadastros/condominios"<%- em('/cadastros/condominios') %>><%- icone('predio') %>Condomínios</a>
+      <a href="/cadastros/itens"<%- em('/cadastros/itens') %>><%- icone('etiqueta') %>Itens e preços</a>
+      <a href="/cadastros/fechamento"<%- em('/cadastros/fechamento') %>><%- icone('calendario') %>Fechamento do mês</a>
+      <a href="/cadastros/descricoes"<%- em('/cadastros/descricoes') %>><%- icone('lista') %>Descrições padrão</a>
+      <a href="/cadastros/departamentos"<%- em('/cadastros/departamentos') %>><%- icone('grupo') %>Departamentos</a>
+      <a href="/cadastros/usuarios"<%- em('/cadastros/usuarios') %>><%- icone('pessoa') %>Usuários</a>
+      <a href="/cadastros/auditoria"<%- em('/cadastros/auditoria') %>><%- icone('historico') %>Auditoria</a>
     <% } %>
   </nav>
   <div class="quem">
-    <strong><%= user.nome %></strong>
-    <span><%= user.admin ? 'Administrador' : (user.depto || 'Usuário') %></span>
-    <a href="/conta">Minha conta</a>
-    <form method="post" action="/sair"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="link">Sair</button></form>
+    <span class="avatar" aria-hidden="true"><%= String(user.nome || user.login).split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('') %></span>
+    <span class="quem-texto"><strong><%= user.nome %></strong><span><%= user.admin ? 'Administrador' : (user.depto ? user.depto.charAt(0) + user.depto.slice(1).toLowerCase() : 'Usuário') %></span></span>
+    <span class="quem-acoes">
+      <a href="/conta" title="Minha conta" aria-label="Minha conta"<%- em('/conta') %>><svg class="icone" aria-hidden="true"><use href="#i-engrenagem"/></svg></a>
+      <form method="post" action="/sair"><input type="hidden" name="_csrf" value="<%= csrf %>"><button title="Sair" aria-label="Sair"><svg class="icone" aria-hidden="true"><use href="#i-sair"/></svg></button></form>
+    </span>
   </div>
   <% } %>
 </aside>

@@ -4,19 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Entrar · COPP</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<%- include('partials/fontes') %>
 <link rel="stylesheet" href="/style.css?v=<%= versao %>">
 </head>
 <body class="entrada">
+<%- include('partials/entrada_lado') %>
 <main class="entrada-caixa">
-  <span class="registro grande" aria-hidden="true"><i class="c"></i><i class="m"></i><i class="y"></i><i class="k"></i></span>
-  <h1>COPP</h1>
-  <p class="entrada-sub">Cópias e impressões por condomínio, do PaperCut à Contabilidade.</p>
+  <div>
+    <h1>Entrar</h1>
+    <p class="entrada-sub">Use o usuário e a senha que o administrador criou para você.</p>
+  </div>
   <% if (erro) { %><div class="aviso aviso-erro" role="alert"><%= erro %></div><% } %>
   <form method="post" action="/login" class="pilha">
-    <label>Usuário <input name="login" value="<%= login %>" autocomplete="username" required autofocus></label>
+    <label>Usuário <input name="login" value="<%= login %>" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus></label>
     <label>Senha <input name="senha" type="password" autocomplete="current-password" required></label>
     <button class="botao primario">Entrar</button>
   </form>

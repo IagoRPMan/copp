@@ -21,8 +21,8 @@ npm test
 
 1. **Contabilidade** (ou o administrador) exporta do PaperCut o registro de trabalhos de impressão de todos os usuários e envia em "Importar do PaperCut". A prévia mostra o que será lançado; nada é gravado antes da confirmação.
 2. O sistema cria um lançamento por condomínio × item × descrição × responsável, dentro do mês da impressão. O valor é quantidade × tabela de preços do sistema (o custo calculado pelo PaperCut é ignorado).
-3. **Gerentes** recebem a própria carteira para aprovação: corrigem descrição e quantidade na lista, trocam condomínio ou item no detalhe, movem trabalhos cobrados da conta errada, cancelam com motivo e liberam.
-4. Quando não resta nenhum pendente no mês, a **Contabilidade** passa a ver o relatório (uma página por condomínio) e a planilha CSV.
+3. A **Contabilidade** confere tudo: corrige descrição e quantidade na lista, troca condomínio ou item no detalhe, move trabalhos cobrados da conta errada, cancela com motivo e libera. Ninguém aprova o próprio lançamento.
+4. Quando não resta nenhum pendente no mês, o relatório (uma página por condomínio) e a planilha CSV ficam disponíveis.
 
 Arquivos parciais do mesmo mês podem ser enviados em qualquer ordem: trabalhos já importados são pulados e as páginas novas somam nos lançamentos que ainda estão pendentes. Uma importação pode ser desfeita enquanto nada dela tiver sido liberado.
 
@@ -30,14 +30,14 @@ Arquivos parciais do mesmo mês podem ser enviados em qualquer ordem: trabalhos 
 
 | Quem | O que faz |
 |---|---|
-| **Administrador** | Poder total: cadastros, importação, todas as carteiras, relatórios, auditoria |
-| **Usuário** (todos os outros) | Cria, edita e aprova lançamentos da própria carteira |
-| Usuário da **Gerência** | A carteira são os condomínios em que ele é o gerente |
-| Quem tem gente que **responde a ele** | Enxerga e aprova também a carteira dessas pessoas (supervisor → gerentes) |
-| Usuário da **Contabilidade** | Além da carteira, importa o relatório do PaperCut e emite relatórios dos meses liberados |
-| Usuário da **Diretoria** | Além da carteira, vê o painel, todas as carteiras e os relatórios |
+| **Administrador** | Poder total: cadastros, importação, conferência, relatórios, auditoria |
+| Usuário da **Contabilidade** | Importa o PaperCut, confere, corrige, cancela, libera e reabre lançamentos; emite relatórios |
+| Usuário da **Diretoria** | Acompanha o painel, todos os lançamentos e os relatórios, sem liberar |
+| Usuário da **Gerência** | Acompanha os lançamentos dos condomínios em que é o gerente |
+| Quem tem gente que **responde a ele** | Acompanha também os lançamentos dessas pessoas |
+| **Usuário** (todos os outros) | Lança conduções e cópias manuais e acompanha o que imprimiu ou lançou |
 
-O alcance de cada departamento é configurável em Cadastros → Departamentos. Um lançamento manual criado por alguém de outro departamento vai para o gerente do prédio aprovar; quem criou ainda pode corrigi-lo enquanto estiver pendente.
+Só a Contabilidade (e o administrador) libera. Quem criou um lançamento manual ainda pode corrigi-lo ou cancelá-lo enquanto ele estiver pendente, mas não aprová-lo. O alcance de cada departamento é configurável em Cadastros → Departamentos.
 
 ## Carga inicial de condomínios e carteiras
 
@@ -51,7 +51,7 @@ A mesma planilha pode ser enviada pela tela Cadastros → Condomínios. As pesso
 
 ## Regras que vale conhecer
 
-- **Carteira:** o lançamento vai para o gerente cadastrado no condomínio, não importa quem imprimiu. Sem gerente cadastrado, vai para quem imprimiu.
+- **Quem imprimiu:** cada lançamento importado fica registrado em nome de quem imprimiu (o manual, de quem lançou). Serve para acompanhar e para o relatório por funcionário; a conferência é sempre da Contabilidade.
 - **Conta do PaperCut:** uma conta ainda desconhecida é ligada ao condomínio pelo código do nome ("076 - …" → 0076). Sem condomínio com esse código, ele é criado.
 - **Dupla face:** o item nasce desativado e as páginas contam como cópia simples. Ative e defina o preço em "Itens e preços".
 - **Preço:** fica gravado no lançamento. Mudar a tabela só afeta importações futuras, a menos que se marque "Recalcular pendentes".
@@ -80,7 +80,18 @@ Exemplos prontos em `deploy/`. Em resumo:
 4. Publique por Nginx com HTTPS usando `deploy/nginx.conf` como base. O serviço escuta só em `127.0.0.1`.
 5. Agende o backup diário: `0 2 * * * cd /opt/copp && DATA_DIR=/var/lib/copp /usr/bin/node scripts/backup.js`.
 
-O backup grava uma cópia consistente em `data/backups` e mantém as 30 mais recentes. Copie essa pasta para fora da VPS. Para restaurar, pare o serviço e substitua `copp.db` pela cópia.
+O backup grava uma cópia consistente em `data/backups` e mantém as 30 mais recentes. Para restaurar, pare o serviço e substitua `copp.db` pela cópia.
+
+**Cópia fora da VPS.** Um backup que fica só na VPS some junto com ela. Duas formas simples:
+
+- *Puxar para um computador do escritório* (Windows, Agendador de Tarefas, todo dia às 3h):
+  `scp -P 22022 -i %USERPROFILE%\.ssh\copp_vps root@SEU_IP:/var/lib/copp/backups/*.db D:\Backups\COPP\`
+- *Enviar para a nuvem* com o [rclone](https://rclone.org) (Google Drive, OneDrive, S3): configure o destino uma vez com `rclone config` e acrescente ao cron, depois do backup:
+  `30 2 * * * root rclone copy /var/lib/copp/backups copp-nuvem:COPP/backups --max-age 48h`
+
+Teste a restauração de uma cópia de vez em quando: backup que nunca foi restaurado não é garantia.
+
+**Monitoramento.** `GET /saude` responde `{"ok":true}` (200) quando o sistema e o banco estão no ar, sem exigir login. Cadastre `https://SEU_DOMINIO/saude` num monitor gratuito como o UptimeRobot para receber um e-mail se o COPP cair.
 
 ## Estrutura
 

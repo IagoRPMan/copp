@@ -145,7 +145,8 @@
 
   // Liberação em lote.
   const lote = document.querySelector('[data-lote]');
-  if (lote) {
+  // Só quem confere (Contabilidade) tem o botão de liberar; para os demais, o formulário só salva correções.
+  if (lote && lote.querySelector('[data-botao-lote]')) {
     const caixas = () => [...lote.querySelectorAll('input[name="ids"]')].filter((c) => !c.closest('tr').hidden);
     const todos = lote.querySelector('[data-marcar-todos]');
     const botao = lote.querySelector('[data-botao-lote]');
@@ -154,7 +155,7 @@
       const lista = caixas();
       const n = lista.filter((c) => c.checked).length;
       botao.disabled = n === 0;
-      botao.textContent = n ? `Salvar e liberar ${n} marcado${n > 1 ? 's' : ''}` : 'Salvar e liberar marcados';
+      (botao.querySelector('[data-rotulo]') || botao).textContent = n ? `Salvar e liberar ${n} marcado${n > 1 ? 's' : ''}` : 'Salvar e liberar marcados';
       contagem.textContent = lista.length ? (n ? `${n} de ${lista.length} pendentes marcados` : `${lista.length} pendentes nesta lista`) : 'Nada pendente nesta lista';
       if (todos) { todos.checked = n > 0 && n === lista.length; todos.indeterminate = n > 0 && n < lista.length; todos.disabled = lista.length === 0; }
     };

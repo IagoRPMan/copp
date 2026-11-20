@@ -34,13 +34,13 @@
             <option value="">Sem departamento</option>
             <% departamentos.forEach((d) => { %><option value="<%= d.id %>"<%= d.id === u.departamento_id ? ' selected' : '' %>><%= d.nome %></option><% }) %>
           </select>
-          <small>Contabilidade importa e emite relatórios. Diretoria vê todas as carteiras.</small></label>
+          <small>Contabilidade importa, confere, libera e emite relatórios. Diretoria acompanha tudo, sem liberar.</small></label>
         <label class="largo">Responde a
           <select name="superior_id">
             <option value="">Ninguém</option>
             <% superiores.filter((p) => p.id !== u.id).forEach((p) => { %><option value="<%= p.id %>"<%= p.id === u.superior_id ? ' selected' : '' %>><%= p.nome %> (<%= p.login %>)</option><% }) %>
           </select>
-          <small>O superior enxerga e aprova a carteira de quem responde a ele.</small></label>
+          <small>O superior acompanha os lançamentos de quem responde a ele.</small></label>
       </fieldset>
     </div>
 

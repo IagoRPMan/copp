@@ -9,12 +9,12 @@
     <label class="duplo">Conta compartilhada no PaperCut
       <input name="conta_papercut" value="<%= c.conta_papercut || '' %>" maxlength="160">
       <small>Exatamente como aparece no export, por exemplo "076 - B. B. Boulogne". É por ela que a importação encontra o condomínio.</small></label>
-    <label class="duplo">Gerente do condomínio (carteira)
+    <label class="duplo">Gerente do condomínio
       <select name="responsavel_id">
         <option value="">Sem gerente</option>
         <% responsaveis.forEach((u) => { %><option value="<%= u.id %>"<%= u.id === c.responsavel_id ? ' selected' : '' %>><%= u.nome %> (<%= u.login %>)</option><% }) %>
       </select>
-      <small>Cada lançamento vai para a carteira de quem imprimiu. O gerente também enxerga e pode aprovar tudo o que é deste condomínio, e recebe os trabalhos sem usuário identificado.</small></label>
+      <small>O gerente acompanha os lançamentos deste condomínio. A conferência e a liberação são da Contabilidade.</small></label>
     <label class="marcar duplo"><input type="checkbox" name="gera_lancamento" value="1"<%= c.gera_lancamento ? ' checked' : '' %>> Gerar lançamentos para esta conta
       <small>Desmarque para contas internas da administradora, que não são cobradas de nenhum condomínio.</small></label>
     <label class="marcar duplo"><input type="checkbox" name="ativo" value="1"<%= c.ativo ? ' checked' : '' %>> Ativo</label>

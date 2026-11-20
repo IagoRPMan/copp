@@ -1,12 +1,16 @@
-<% const conducao = l.conta === '1741'; const admin = user.verTudo; const novo = !l.id; const travado = l.status !== 'pendente'; %>
+<% const conducao = l.conta === '1741'; const novo = !l.id; const pendente = l.status === 'pendente'; const travado = !pendente || !podeEditar; %>
 <%- include('partials/topo', { titulo: novo ? (conducao ? 'Lançar condução' : 'Lançar cópias') : 'Lançamento ' + l.id }) %>
 <header class="cabeca">
-  <h1><%= novo ? (conducao ? 'Lançar condução' : 'Lançar cópias') : 'Lançamento ' + l.id %>
-    <% if (!novo) { %><span class="carimbo <%= l.status %>"><%= l.status %></span><% } %></h1>
+  <div>
+    <h1><%= novo ? (conducao ? 'Lançar condução' : 'Lançar cópias') : 'Lançamento ' + l.id %>
+      <% if (!novo) { %><span class="carimbo grande <%= l.status %>"><%= l.status %></span><% } %></h1>
+    <p class="subtitulo"><% if (novo) { %><%= conducao ? 'Registre um deslocamento feito a serviço de um condomínio.' : 'Registre cópias que não passaram pelo PaperCut.' %> O lançamento vai para a conferência da Contabilidade.<% } else { %><span class="cod"><%= l.cond_codigo %></span><%= l.cond_nome %> · <%= fmt.mesAno(l.competencia) %><% if (l.resp_nome) { %> · <%= l.origem === 'manual' ? 'lançado' : 'impresso' %> por <%= l.resp_nome %><% } %><% } %></p>
+  </div>
   <a class="botao" href="<%= voltar %>">Voltar à lista</a>
 </header>
 
 <% if (erros.length) { %><div class="aviso aviso-erro" role="alert"><% erros.forEach((e) => { %><div><%= e %></div><% }) %></div><% } %>
+<% if (!novo && pendente && !podeEditar) { %><div class="aviso">Este lançamento aguarda a conferência da Contabilidade. Você pode acompanhar, mas só ela altera e libera.</div><% } %>
 <% if (l.alerta && !travado) { %><div class="aviso aviso-aviso"><strong>Confira o condomínio.</strong> <%= l.alerta %></div><% } %>
 <% if (l.status === 'cancelado') { %><div class="aviso aviso-aviso">Cancelado. Motivo: <%= l.cancelado_motivo %></div><% } %>
 
@@ -40,30 +44,22 @@
       <input name="descricao" value="<%= l.descricao %>" maxlength="300" list="descricoes" data-caixa="alta" required>
       <datalist id="descricoes"><% descricoes.forEach((d) => { %><option value="<%= d.texto %>"><% }) %></datalist>
       <small>É o texto que aparece no relatório da Contabilidade. <%= conducao ? 'Ex.: Ao condomínio entregar documentos.' : 'Ex.: Material de assembleia, Balancete ref. out/2026.' %></small></label>
-    <% if (admin) { %>
-    <label class="largo">Responsável pela conferência
-      <select name="responsavel_id">
-        <option value=""><%= l.id ? 'Manter como está' : 'Quem está lançando (você)' %></option>
-        <% responsaveis.forEach((u) => { %><option value="<%= u.id %>"<%= u.id === l.responsavel_id ? ' selected' : '' %>><%= u.nome %></option><% }) %>
-      </select>
-      <small>Quem confere e libera. O gerente do condomínio também enxerga e pode aprovar.</small></label>
-    <% } %>
   </fieldset>
-  <% if (!novo) { %><p class="nota">Valor atual: <strong class="num"><%= fmt.num(l.quantidade) %> × <%= fmt.brl(l.preco_centavos) %> = <%= fmt.brl(l.valor_centavos) %></strong>. O valor é recalculado ao salvar.</p><% } %>
+  <% if (!novo) { %><p class="nota">Valor: <strong class="num"><%= fmt.num(l.quantidade) %> × <%= fmt.brl(l.preco_centavos) %> = <%= fmt.brl(l.valor_centavos) %></strong>. O valor é recalculado ao salvar.</p><% } %>
   <% if (!travado) { %>
   <div class="acoes">
     <% if (novo) { %><button class="botao primario">Criar lançamento</button>
     <% } else { %>
-      <% if (podeLiberar) { %><button class="botao primario" name="acao" value="liberar">Salvar e liberar</button>
+      <% if (podeLiberar) { %><button class="botao primario" name="acao" value="liberar"><svg class="icone" aria-hidden="true"><use href="#i-visto"/></svg>Salvar e liberar</button>
       <button class="botao" name="acao" value="salvar">Salvar sem liberar</button>
-      <% } else { %><button class="botao primario" name="acao" value="salvar">Salvar alterações</button>
-      <span class="nota">Está na carteira de <%= l.resp_nome || 'ninguém' %>. Quem imprimiu, o gerente do prédio e os superiores podem aprovar.</span><% } %>
+      <% } else { %><button class="botao primario" name="acao" value="salvar">Salvar correções</button>
+      <span class="nota">Depois de salvo, continua pendente até a Contabilidade conferir e liberar.</span><% } %>
     <% } %>
   </div>
   <% } %>
 </form>
 
-<% if (!novo && travado && podeLiberar) { %>
+<% if (!novo && !pendente && podeLiberar) { %>
 <form method="post" action="/lancamentos/<%= l.id %>/reabrir" class="acoes">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
   <button class="botao">Reabrir para conferência</button>
@@ -85,7 +81,7 @@
 
 <% if (trabalhos.length) { %>
 <h2>Trabalhos do PaperCut que formam este lançamento</h2>
-<% const divide = !travado && trabalhos.length > 0; %>
+<% const divide = !travado && podeMover && trabalhos.length > 0; %>
 <% if (divide) { %><form method="post" action="/lancamentos/<%= l.id %>/mover">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
   <input type="hidden" name="voltar" value="<%= voltar %>"><% } %>

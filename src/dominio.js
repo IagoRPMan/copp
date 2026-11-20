@@ -18,7 +18,7 @@ const fmt = {
   dataHora: (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${iso.slice(11, 16)}` : ''),
   comp: (c) => (c ? `${MESES[parseInt(c.slice(5, 7), 10) - 1]}/${c.slice(0, 4)}` : ''),
   papel: (p) => (p === 'admin' ? 'Administrador' : 'Usuário'),
-  funcao: (f) => ({ comum: 'Só a própria carteira', gerencia: 'Gerentes de prédio', contabilidade: 'Importa o PaperCut e emite relatórios', diretoria: 'Vê todas as carteiras' }[f] || f),
+  funcao: (f) => ({ comum: 'Acompanha o que imprimiu ou lançou', gerencia: 'Gerentes de prédio: acompanham os seus condomínios', contabilidade: 'Importa, confere, libera e emite relatórios', diretoria: 'Acompanha tudo, sem liberar' }[f] || f),
 };
 
 // Total do condomínio no formato do relatório que a Contabilidade já recebia (ex.: 1,002.26).
