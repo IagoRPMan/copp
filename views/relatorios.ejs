@@ -1,0 +1,112 @@
+<%- include('partials/topo', { titulo: 'Relatórios' }) %>
+<header class="cabeca nao-imprime"><h1>Relatórios</h1></header>
+<%- include('partials/relatorio_filtros', { aba: 'condominio' }) %>
+
+<% if (!comps.length) { %>
+  <p class="vazio">Ainda não há lançamentos. O relatório aparece aqui quando os responsáveis liberarem os lançamentos.</p>
+<% } else { const conducao = conta.codigo === '1741'; const periodo = fmt.data(de) + ' a ' + fmt.data(ate); %>
+<form method="get" class="filtros nao-imprime">
+  <label>Conta
+    <select name="conta" data-enviar>
+      <% contas.forEach((c) => { %><option value="<%= c.codigo %>"<%= c.codigo === conta.codigo ? ' selected' : '' %>><%= c.codigo %> · <%= c.nome %></option><% }) %>
+    </select></label>
+  <label>Mês
+    <select name="competencia" data-enviar data-limpa="de,ate">
+      <% if (intervalo) { %><option value="" selected>Período escolhido ao lado</option><% } %>
+      <% comps.forEach((c) => { %><option value="<%= c.competencia %>"<%= !intervalo && competencia && c.competencia === competencia.competencia ? ' selected' : '' %>><%= fmt.comp(c.competencia) %> (<%= fmt.periodo(c.de, c.ate) %>) · <%= c.liberada ? 'liberado' : 'em conferência' %></option><% }) %>
+    </select></label>
+  <label>Recorte do mês
+    <select name="recorte" data-enviar>
+      <% Object.entries(recortes).forEach(([k, nome]) => { %><option value="<%= k %>"<%= k === recorte ? ' selected' : '' %>><%= nome %></option><% }) %>
+    </select></label>
+  <label>Ou de <input type="date" name="de" value="<%= intervalo ? de : '' %>"></label>
+  <label>até <input type="date" name="ate" value="<%= intervalo ? ate : '' %>"></label>
+  <label>Condomínio
+    <select name="condominio" data-enviar>
+      <option value="">Todos</option>
+      <% condominios.forEach((c) => { %><option value="<%= c.id %>"<%= c.id === condominio ? ' selected' : '' %>><%= c.codigo %> · <%= c.nome %></option><% }) %>
+    </select></label>
+  <label>Formato
+    <select name="modo" data-enviar>
+      <option value="analitico"<%= modo === 'analitico' ? ' selected' : '' %>>Analítico (cada lançamento)</option>
+      <option value="sintetico"<%= modo === 'sintetico' ? ' selected' : '' %>>Sintético (total por condomínio)</option>
+    </select></label>
+  <button class="botao">Atualizar</button>
+</form>
+
+<% if (visivel) { %>
+  <div class="acoes nao-imprime">
+    <% if (emConferencia.length) { %>
+    <button type="button" class="botao primario" disabled>Imprimir ou salvar em PDF</button>
+    <button type="button" class="botao" disabled>Baixar planilha (CSV)</button>
+    <span class="nota">Impressão e planilha ficam disponíveis quando não houver nenhum lançamento em aberto no período.</span>
+    <% } else { %>
+    <button type="button" class="botao primario" data-imprimir>Imprimir ou salvar em PDF</button>
+    <a class="botao" href="/relatorios/csv?<%= consulta %>">Baixar planilha (CSV)</a>
+    <% } %>
+  </div>
+
+  <% if (!relatorio.grupos.length) { %>
+    <p class="vazio">Nenhum lançamento liberado com estes filtros.</p>
+  <% } else { %>
+  <p class="resumo-folhas nao-imprime"><%= relatorio.grupos.length %> condomínio(s) · <strong class="num"><%= fmt.num(relatorio.total.quantidade) %></strong> <%= conta.unidade %> · <strong class="num"><%= fmt.brl(relatorio.total.valor) %></strong><% if (emConferencia.length) { %> · <strong>PRÉVIA: há mês ainda não liberado neste período</strong><% } %></p>
+  <% if (emConferencia.length) { %><p class="bloqueio-impressao">Este relatório não pode ser impresso: há lançamentos em aberto no período.</p><% } %>
+  <div class="folhas<%= emConferencia.length ? ' sem-impressao' : '' %>">
+  <% const rodape = '<footer class="folha-rodape">' + emitido + '</footer>'; const un = conducao ? 'un.' : 'pág.'; %>
+  <% if (modo === 'sintetico' || (!condominio && relatorio.grupos.length > 1)) { relatorio.indice.forEach((pagina, n) => { const ultima = n === relatorio.indice.length - 1; %>
+    <section class="folha">
+      <%- include('partials/folha_cabeca', { pagina: n + 1, totalPaginas: relatorio.indice.length }) %>
+      <div class="folha-corpo">
+        <h2 class="folha-cond">Resumo do período<% if (n) { %> <small>(continuação)</small><% } %></h2>
+        <% if (n === 0) { %>
+        <table class="folha-resumo"><tr>
+          <td><span>Condomínios</span><b><%= relatorio.grupos.length %></b></td>
+          <td><span>Lançamentos</span><b><%= fmt.num(relatorio.linhas.length) %></b></td>
+          <td><span><%= conducao ? 'Conduções' : 'Páginas' %></span><b><%= fmt.num(relatorio.total.quantidade) %></b></td>
+          <td class="total"><span>Total geral</span><b><%= fmt.brl(relatorio.total.valor) %></b></td>
+        </tr></table>
+        <% } %>
+        <table class="folha-tabela indice">
+          <colgroup><col class="c-cod"><col><col class="c-num"><col class="c-qtd"><col class="c-val"></colgroup>
+          <thead><tr><th>Código</th><th>Condomínio</th><th class="d">Lançamentos</th><th class="d">Qtde</th><th class="d">Valor</th></tr></thead>
+          <tbody><% pagina.forEach((g) => { %>
+            <tr><td class="num"><%= g.codigo %></td><td><%= g.nome %></td><td class="d num"><%= g.linhas.length %></td><td class="d num"><%= fmt.num(g.quantidade) %></td><td class="d num"><%= fmt.brl(g.valor) %></td></tr>
+          <% }) %></tbody>
+          <% if (ultima) { %><tfoot><tr><td colspan="2" class="d">Total geral</td><td class="d num"><%= fmt.num(relatorio.linhas.length) %></td><td class="d num"><%= fmt.num(relatorio.total.quantidade) %></td><td class="d num"><%= fmt.brl(relatorio.total.valor) %></td></tr></tfoot><% } %>
+        </table>
+      </div>
+      <%- rodape %>
+    </section>
+  <% }) } %>
+  <% if (modo !== 'sintetico') { relatorio.grupos.forEach((g) => { g.paginas.forEach((pagina, n) => { const ultima = n === g.paginas.length - 1; %>
+    <section class="folha">
+      <%- include('partials/folha_cabeca', { pagina: n + 1, totalPaginas: g.paginas.length }) %>
+      <div class="folha-corpo">
+        <h2 class="folha-cond"><%= g.codigo %> - <%= g.nome %><% if (n) { %> <small>(continuação)</small><% } %></h2>
+        <% if (n === 0) { %>
+        <table class="folha-resumo"><tr>
+          <% g.itens.forEach((it) => { %><td><span><%= fmt.cod4(it.codigo) %> · <%= it.rotulo %></span><b><%= fmt.num(it.quantidade) %> <%= un %></b><em><%= fmt.brl(it.valor) %></em></td><% }) %>
+          <td class="total"><span>Total do condomínio</span><b><%= fmt.brl(g.valor) %></b><em><%= fmt.num(g.quantidade) %> <%= un %></em></td>
+        </tr></table>
+        <% } %>
+        <table class="folha-tabela">
+          <colgroup><col class="c-nr"><col class="c-data"><col class="c-item"><col><col class="c-qtd"><col class="c-unit"><col class="c-val"></colgroup>
+          <thead><tr><th class="d">Nr. Ord</th><th>Data</th><th>Item</th><th>Descrição</th><th class="d">Qtde</th><th class="d">Unit.</th><th class="d">Valor</th></tr></thead>
+          <tbody><% pagina.forEach((l) => { %>
+            <tr><td class="d num nr"><%= fmt.num(l.id) %></td><td class="num"><%= fmt.data(l.data) %></td><td><span class="num"><%= fmt.cod4(l.item_codigo) %></span> <%= l.item_rotulo %></td>
+              <td><%= l.descricao %><% if (conducao && l.func_nome) { %> · <%= l.func_nome %><% if (l.hora_inicio) { %> (<%= l.hora_inicio %><%= l.hora_fim ? '–' + l.hora_fim : '' %>)<% } %><% } %></td>
+              <td class="d num"><%= fmt.num(l.quantidade) %></td><td class="d num"><%= fmt.dec(l.preco_centavos) %></td><td class="d num"><%= fmt.dec(l.valor_centavos) %></td></tr>
+          <% }) %></tbody>
+          <% if (ultima) { %><tfoot><tr><td colspan="4" class="d">Total das despesas para o condomínio</td><td class="d num"><%= fmt.num(g.quantidade) %></td><td></td><td class="d num"><%= fmt.brl(g.valor) %></td></tr></tfoot><% } %>
+        </table>
+      </div>
+      <%- rodape %>
+    </section>
+  <% }) }) } %>
+  </div>
+  <% } %>
+<% } else { %>
+  <p class="vazio">O relatório deste período fica disponível assim que todos os responsáveis liberarem seus lançamentos.</p>
+<% } %>
+<% } %>
+<%- include('partials/rodape') %>

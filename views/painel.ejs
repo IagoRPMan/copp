@@ -1,0 +1,76 @@
+<%- include('partials/topo', { titulo: 'Painel' }) %>
+<header class="cabeca nao-imprime">
+  <h1>Painel</h1>
+  <% if (competencia) { %>
+  <form method="get" class="linha">
+    <label class="so-leitor" for="comp">Competência</label>
+    <select id="comp" name="competencia" data-enviar>
+      <% comps.forEach((c) => { %><option value="<%= c.competencia %>"<%= c.competencia === competencia.competencia ? ' selected' : '' %>><%= fmt.comp(c.competencia) %> (<%= fmt.periodo(c.de, c.ate) %>)<%= c.liberada ? ' · liberada' : '' %></option><% }) %>
+    </select>
+  </form>
+  <% } %>
+</header>
+<% if (!competencia) { %>
+  <div class="vazio">
+    <p>Nenhum lançamento ainda. O primeiro passo é enviar o relatório de trabalhos de impressão do PaperCut.</p>
+    <% if (user.podeImportar) { %><p><a class="botao primario" href="/importacoes">Importar do PaperCut</a></p><% } %>
+  </div>
+<% } else { %>
+  <section class="resumo nao-imprime">
+    <div><span class="rotulo">Competência</span><strong class="grande"><%= fmt.comp(competencia.competencia) %></strong>
+      <small><%= fmt.periodo(competencia.de, competencia.ate) %></small>
+      <span class="carimbo <%= competencia.liberada ? 'liberado' : 'pendente' %>"><%= competencia.liberada ? 'Liberada para a Contabilidade' : 'Em conferência' %></span></div>
+    <div><span class="rotulo">Liberados</span><strong class="num"><%= fmt.num(competencia.liberados) %> <small>de <%= fmt.num(competencia.total) %></small></strong>
+      <%- include('partials/tira', { feitos: competencia.liberados, total: competencia.total }) %></div>
+    <div><span class="rotulo">Segurando o fechamento</span><strong class="num"><%= pendentes.length %> <small><%= pendentes.length === 1 ? 'pessoa' : 'pessoas' %></small></strong>
+      <small><%= maisAntigo === null ? 'Ninguém com pendência.' : 'A pendência mais antiga tem ' + maisAntigo + (maisAntigo === 1 ? ' dia.' : ' dias.') %></small></div>
+    <div><span class="rotulo">Valor da competência</span><strong class="num"><%= fmt.brl(competencia.valor_total) %></strong>
+      <small><%= fmt.brl(competencia.valor_liberado) %> já liberados</small></div>
+  </section>
+
+  <% if (pendentes.length) { %>
+  <div class="cabeca-secao">
+    <h2>Pendências por responsável</h2>
+    <button type="button" class="botao nao-imprime" data-imprimir>Imprimir lista de cobrança</button>
+  </div>
+  <div class="so-impressao cabeca-pagina">
+    <p class="empresa"><%= empresa %></p>
+    <p><strong>Lançamentos de cópias aguardando conferência</strong> · <%= fmt.comp(competencia.competencia) %> (<%= fmt.periodo(competencia.de, competencia.ate) %>)</p>
+  </div>
+  <p class="nota nao-imprime">Ordenado por quem espera há mais tempo. Cada pessoa confere e libera no COPP, em "Minha carteira".<% if (semAcesso) { %> <strong><%= semAcesso %> <%= semAcesso === 1 ? 'pessoa ainda não tem' : 'pessoas ainda não têm' %> senha de acesso</strong>: sem ela, não conseguem liberar.<% } %></p>
+  <div class="rolagem"><table class="tabela" data-ordenar>
+    <thead><tr><th>Responsável</th><th>Departamento</th><th class="d">Pendentes</th><th class="d">Condomínios</th><th class="d">Valor pendente</th><th class="d">Esperando há</th><th>Último acesso</th><th class="nao-imprime"></th></tr></thead>
+    <tbody>
+    <% pendentes.forEach((r) => { %>
+      <tr>
+        <td><%= r.nome %><% if (r.superior) { %> <small>· responde a <%= r.superior %></small><% } %>
+          <% if (r.id && !r.tem_acesso) { %><% if (user.admin) { %> <a class="etiqueta alerta nao-imprime" href="/cadastros/usuarios/<%= r.id %>">sem senha de acesso</a><% } else { %> <span class="etiqueta alerta">sem senha de acesso</span><% } %><% } %>
+          <% if (r.alertas) { %> <span class="etiqueta alerta"><%= r.alertas %> com alerta</span><% } %></td>
+        <td><%= r.depto || '—' %></td>
+        <td class="d num"><%= r.pendentes %><small> de <%= r.pendentes + r.liberados %></small></td>
+        <td class="d num"><%= r.condominios %></td>
+        <td class="d num"><%= fmt.brl(r.valor_pendente) %></td>
+        <td class="d num<%= r.dias >= 5 ? ' texto-alerta' : '' %>"><%= r.dias === 0 ? 'hoje' : r.dias + (r.dias === 1 ? ' dia' : ' dias') %></td>
+        <td class="num"><%= r.ultimo_acesso ? fmt.dataHora(r.ultimo_acesso) : (r.id ? 'nunca entrou' : '—') %></td>
+        <td class="d nao-imprime"><% if (user.verTudo) { %><a href="/lancamentos?competencia=<%= competencia.competencia %><%= r.id ? '&responsavel=' + r.id : '' %>&status=pendente">Ver pendentes</a><% } %></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+  <% } else { %>
+    <p class="vazio">Ninguém com pendência nesta competência.</p>
+  <% } %>
+
+  <% if (prontos.length) { %>
+  <h2 class="nao-imprime">Já liberaram tudo</h2>
+  <div class="rolagem nao-imprime"><table class="tabela" data-ordenar>
+    <thead><tr><th>Responsável</th><th>Departamento</th><th class="d">Lançamentos</th><th class="d">Valor</th><th>Liberou em</th></tr></thead>
+    <tbody>
+    <% prontos.forEach((r) => { %>
+      <tr><td><%= r.nome %></td><td><%= r.depto || '—' %></td><td class="d num"><%= r.liberados %></td><td class="d num"><%= fmt.brl(r.valor) %></td><td class="num"><%= fmt.dataHora(r.ultima_liberacao) %></td></tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+  <% } %>
+<% } %>
+<%- include('partials/rodape') %>

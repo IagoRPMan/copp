@@ -1,0 +1,5 @@
+node_modules/
+data/
+# Dados reais de condomínios e funcionários (LGPD): ficam fora do repositório.
+dados-iniciais/*.csv
+.env

@@ -1,0 +1,32 @@
+<%- include('partials/topo', { titulo: 'Condomínios' }) %>
+<header class="cabeca"><h1>Condomínios</h1><a class="botao" href="/cadastros/condominios/novo">Novo condomínio</a></header>
+<form method="get" class="filtros">
+  <label>Buscar <input type="search" name="q" value="<%= q %>" placeholder="Código ou nome"></label>
+  <button class="botao">Buscar</button>
+</form>
+<details class="carga">
+  <summary>Cadastrar vários de uma vez (planilha)</summary>
+  <form method="post" action="/cadastros/carga" enctype="multipart/form-data" class="envio">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label for="arquivo">Planilha CSV: codigo e nome são obrigatórios; conta_papercut, login_responsavel, nome_responsavel, matricula_responsavel, departamento, login_superior e nome_superior são opcionais</label>
+    <input id="arquivo" type="file" name="arquivo" accept=".csv,text/csv" required>
+    <button class="botao primario">Enviar planilha</button>
+    <p class="nota">Condomínios com o mesmo código são atualizados; os outros são criados. O login do responsável define o gerente do condomínio, que enxerga e pode aprovar os lançamentos do prédio. <a href="/cadastros/carga/modelo.csv">Baixar modelo</a>.</p>
+  </form>
+</details>
+<% if (!lista.length) { %>
+  <p class="vazio"><%= q ? 'Nenhum condomínio com esta busca.' : 'Nenhum condomínio ainda. Eles são cadastrados automaticamente na primeira importação do PaperCut.' %></p>
+<% } else { %>
+<div class="rolagem"><table class="tabela" data-ordenar>
+  <thead><tr><th>Código</th><th>Nome</th><th>Conta no PaperCut</th><th>Gerente</th><th>Situação</th><th></th></tr></thead>
+  <tbody>
+  <% lista.forEach((c) => { %>
+    <tr><td class="num"><%= c.codigo %></td><td><%= c.nome %></td><td><%= c.conta_papercut || '—' %></td>
+      <td><%= c.resp_nome || 'Quem imprimiu' %></td>
+      <td><% if (!c.ativo) { %><span class="etiqueta">inativo</span><% } else if (!c.gera_lancamento) { %><span class="etiqueta">não gera lançamento</span><% } else { %>Ativo<% } %></td>
+      <td class="d"><a href="/cadastros/condominios/<%= c.id %>">Editar</a></td></tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<% } %>
+<%- include('partials/rodape') %>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= titulo %> · COPP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=<%= versao %>">
+<script src="/app.js?v=<%= versao %>" defer></script>
+</head>
+<body>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<div class="casca">
+<aside class="lateral">
+  <a class="marca" href="/">
+    <span class="registro" aria-hidden="true"><i class="c"></i><i class="m"></i><i class="y"></i><i class="k"></i></span>
+    <span class="marca-nome">COPP</span>
+    <span class="marca-sub">Cópias e impressões</span>
+  </a>
+  <% if (user) { const em = (p) => caminho.startsWith(p) ? ' class="ativo" aria-current="page"' : ''; %>
+  <nav aria-label="Principal">
+    <% if (user.verRelatorios) { %><a href="/painel"<%- em('/painel') %>>Painel de pendências</a><% } %>
+    <% if (user.podeImportar) { %><a href="/importacoes"<%- em('/importacoes') %>>Importar do PaperCut</a><% } %>
+    <a href="/lancamentos"<%- em('/lancamentos') %>><%= user.verTudo ? 'Conferência' : 'Minha carteira' %></a>
+    <% if (user.verRelatorios) { %><a href="/relatorios"<%- em('/relatorios') %>>Relatórios</a><% } %>
+    <% if (user.admin) { %>
+      <span class="nav-titulo">Cadastros</span>
+      <a href="/cadastros/condominios"<%- em('/cadastros/condominios') %>>Condomínios</a>
+      <a href="/cadastros/itens"<%- em('/cadastros/itens') %>>Itens e preços</a>
+      <a href="/cadastros/fechamento"<%- em('/cadastros/fechamento') %>>Fechamento do mês</a>
+      <a href="/cadastros/descricoes"<%- em('/cadastros/descricoes') %>>Descrições padrão</a>
+      <a href="/cadastros/departamentos"<%- em('/cadastros/departamentos') %>>Departamentos</a>
+      <a href="/cadastros/usuarios"<%- em('/cadastros/usuarios') %>>Usuários</a>
+      <a href="/cadastros/auditoria"<%- em('/cadastros/auditoria') %>>Auditoria</a>
+    <% } %>
+  </nav>
+  <div class="quem">
+    <strong><%= user.nome %></strong>
+    <span><%= user.admin ? 'Administrador' : (user.depto || 'Usuário') %></span>
+    <a href="/conta">Minha conta</a>
+    <form method="post" action="/sair"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="link">Sair</button></form>
+  </div>
+  <% } %>
+</aside>
+<main id="conteudo">
+<% if (user && user.semCodigo && !user.trocarSenha && caminho !== '/conta') { %><div class="aviso aviso-aviso nao-imprime">Você ainda não tem código de recuperação de senha. Sem ele, só o administrador consegue liberar uma senha nova se você esquecer a sua. <a href="/conta">Gerar meu código</a></div><% } %>
+<% if (flash) { %><div class="aviso aviso-<%= flash.tipo %>" role="status"><%= flash.texto %></div><% } %>

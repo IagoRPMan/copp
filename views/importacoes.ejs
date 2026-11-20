@@ -1,0 +1,30 @@
+<%- include('partials/topo', { titulo: 'Importar do PaperCut' }) %>
+<header class="cabeca"><h1>Importar do PaperCut</h1></header>
+<% if (erro) { %><div class="aviso aviso-erro" role="alert"><%= erro %></div><% } %>
+
+<form method="post" action="/importacoes" enctype="multipart/form-data" class="envio">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label for="arquivo">Relatório de trabalhos de impressão (CSV)</label>
+  <input id="arquivo" type="file" name="arquivo" accept=".csv,text/csv" required>
+  <button class="botao primario">Ler arquivo e mostrar prévia</button>
+  <p class="nota">Exporte do PaperCut o registro de trabalhos de impressão de todos os usuários, no período desejado. Nada é lançado antes de você confirmar a prévia, e trabalhos já importados são reconhecidos e pulados.</p>
+</form>
+
+<h2>Importações anteriores</h2>
+<% if (!historico.length) { %>
+  <p class="vazio">Nenhuma importação ainda.</p>
+<% } else { %>
+<div class="rolagem"><table class="tabela" data-ordenar>
+  <thead><tr><th>Quando</th><th>Arquivo</th><th>Quem importou</th><th class="d">Linhas</th><th class="d">Importados</th><th class="d">Já existiam</th><th class="d">Ignorados</th><th class="d">Lançamentos</th><th></th></tr></thead>
+  <tbody>
+  <% historico.forEach((i) => { %>
+    <tr><td class="num"><%= fmt.dataHora(i.criado_em) %></td><td class="quebra"><%= i.arquivo %></td><td><%= i.usuario_nome || '—' %></td>
+      <td class="d num"><%= fmt.num(i.linhas) %></td><td class="d num"><%= fmt.num(i.importados) %></td><td class="d num"><%= fmt.num(i.duplicados) %></td><td class="d num"><%= fmt.num(i.ignorados) %></td><td class="d num"><%= fmt.num(i.lancamentos) %><% if (i.acrescidos) { %> <small>+<%= i.acrescidos %> acrescidos</small><% } %></td>
+      <td class="d"><% if (i.desfeita_em) { %><span class="etiqueta">desfeita em <%= fmt.dataHora(i.desfeita_em) %></span><% } else { %>
+        <form method="post" action="/importacoes/<%= i.id %>/desfazer"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="link" data-confirmar="Desfazer esta importação? Os lançamentos pendentes que ela criou serão removidos, com as edições feitas neles.">Desfazer</button></form><% } %>
+        <% if (user.admin) { %><form method="post" action="/importacoes/<%= i.id %>/excluir"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="link perigoso" data-confirmar="Excluir a importação <%= i.arquivo %>? Todos os lançamentos que ela gerou serão apagados, inclusive os já liberados para a Contabilidade. Não dá para voltar atrás.">Excluir</button></form><% } %></td></tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<% } %>
+<%- include('partials/rodape') %>

@@ -1,0 +1,386 @@
+/* COPP — a identidade vem da gráfica: marcas de registro CMYK, carimbos e numerais de contador. */
+:root {
+  --tinta: #1b2233;
+  --tinta-2: #2a3349;
+  --papel: #f3f5f8;
+  --folha: #ffffff;
+  --linha: #d8dde6;
+  --cinza: #5a6478;
+  --ciano: #0b7f9f;
+  --ciano-escuro: #086580;
+  --magenta: #b81f66;
+  --amarelo: #e3a900;
+  --verde: #1c7448;
+  --display: 'Archivo', 'Arial Narrow', sans-serif;
+  --texto: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html { font-size: 15px; }
+body { margin: 0; font-family: var(--texto); color: var(--tinta); background: var(--papel); line-height: 1.45; }
+a { color: var(--ciano-escuro); text-underline-offset: 2px; }
+a:hover { color: var(--tinta); }
+h1, h2, h3 { font-family: var(--display); font-stretch: 112%; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: 1.75rem; font-weight: 750; }
+h2 { font-size: 1.05rem; font-weight: 700; margin: 2rem 0 0.6rem; }
+small { color: var(--cinza); font-size: 0.82rem; }
+:focus-visible { outline: 3px solid var(--amarelo); outline-offset: 2px; }
+
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.pular { position: absolute; left: -999px; top: 0; background: var(--amarelo); color: var(--tinta); padding: 0.5rem 1rem; z-index: 10; }
+.pular:focus { left: 0; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.d { text-align: right; }
+.nota { color: var(--cinza); font-size: 0.88rem; }
+.texto-alerta { color: var(--magenta); font-size: 0.85rem; font-weight: 500; }
+.quebra { overflow-wrap: anywhere; max-width: 22rem; }
+
+/* Estrutura */
+.casca { display: grid; grid-template-columns: 15rem minmax(0, 1fr); min-height: 100vh; }
+.lateral { background: var(--tinta); color: #dfe4ee; padding: 1.25rem 1rem; display: flex; flex-direction: column; gap: 1.25rem; position: sticky; top: 0; height: 100vh; height: 100dvh; }
+main { padding: 1.75rem 2.25rem 4rem; width: 100%; min-width: 0; }
+
+.registro { display: inline-grid; grid-template-columns: repeat(4, 0.6rem); gap: 2px; }
+.registro i { display: block; height: 0.6rem; }
+.registro .c { background: #19b5dc; }
+.registro .m { background: #e6388a; }
+.registro .y { background: #ffd21f; }
+.registro .k { background: #ffffff; }
+.registro.grande { grid-template-columns: repeat(4, 1.1rem); gap: 3px; }
+.registro.grande i { height: 1.1rem; }
+.registro.grande .k { background: var(--tinta); }
+
+.marca { display: grid; gap: 0.3rem; color: #fff; text-decoration: none; }
+.marca-nome { font-family: var(--display); font-stretch: 125%; font-weight: 800; font-size: 1.5rem; letter-spacing: 0.02em; line-height: 1; }
+.marca-sub { font-size: 0.8rem; color: #9aa5ba; }
+
+/* Só o menu rola quando a janela é baixa; marca e usuário (com Sair) ficam sempre à vista. */
+.lateral nav { display: grid; gap: 2px; align-content: start; flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #47526b transparent; }
+.marca, .quem { flex: 0 0 auto; }
+.lateral nav a { color: #dfe4ee; text-decoration: none; padding: 0.5rem 0.65rem; border-radius: 4px; border-left: 3px solid transparent; }
+.lateral nav a:hover { background: var(--tinta-2); color: #fff; }
+.lateral nav a.ativo { background: var(--tinta-2); color: #fff; border-left-color: #19b5dc; font-weight: 600; }
+.nav-titulo { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8591a8; padding: 1rem 0.65rem 0.3rem; }
+.quem { display: grid; gap: 0.15rem; font-size: 0.88rem; border-top: 1px solid var(--tinta-2); padding-top: 1rem; }
+.quem span { color: #9aa5ba; font-size: 0.8rem; margin-bottom: 0.4rem; }
+.quem a, .quem .link { color: #cfd6e4; }
+.link.perigoso { color: var(--magenta); }
+.tabela td form + form { margin-top: 0.3rem; }
+.abas { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--linha); margin-bottom: 1rem; }
+.abas a { padding: 0.55rem 1rem; text-decoration: none; color: var(--cinza); border-bottom: 3px solid transparent; font-weight: 500; }
+.abas a.ativa { color: var(--tinta); border-bottom-color: var(--ciano); }
+.link { background: none; border: 0; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; text-underline-offset: 2px; }
+
+.cabeca { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.cabeca h1 { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+
+/* Avisos */
+.aviso { border-left: 4px solid var(--ciano); background: var(--folha); padding: 0.7rem 1rem; margin: 0 0 1rem; border-radius: 0 4px 4px 0; }
+.aviso-ok { border-left-color: var(--verde); }
+.aviso-aviso { border-left-color: var(--amarelo); }
+.aviso-erro { border-left-color: var(--magenta); }
+.vazio { background: var(--folha); border: 1px dashed var(--linha); border-radius: 6px; padding: 1.5rem; color: var(--cinza); }
+.vazio p { margin: 0 0 0.75rem; }
+.vazio p:last-child { margin-bottom: 0; }
+
+/* Controles */
+input, select, button, textarea { font: inherit; color: inherit; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select { width: 100%; padding: 0.5rem 0.6rem; border: 1px solid #b9c1ce; border-radius: 4px; background: var(--folha); min-height: 2.5rem; }
+input.curto { width: 7rem; }
+/* Seletor de arquivo no padrão dos outros controles, em vez do botão nativo do navegador. */
+input[type="file"] { width: 100%; max-width: 36rem; padding: 0.55rem; border: 1px dashed #9aa5ba; border-radius: 4px; background: var(--papel); color: var(--cinza); font-size: 0.92rem; cursor: pointer; }
+input[type="file"]:hover { border-color: var(--ciano); }
+input[type="file"]::file-selector-button { font: inherit; font-weight: 500; margin-right: 0.85rem; min-height: 2.2rem; padding: 0.35rem 0.9rem; border: 1px solid #b9c1ce; border-radius: 4px; background: var(--folha); color: var(--tinta); cursor: pointer; }
+input[type="file"]::file-selector-button:hover { border-color: var(--tinta); }
+label { display: grid; gap: 0.3rem; align-content: start; font-size: 0.88rem; font-weight: 500; }
+label small { font-weight: 400; }
+label.marcar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-weight: 400; font-size: 0.95rem; }
+label.marcar small { flex-basis: 100%; }
+input[type="checkbox"], input[type="radio"] { width: 1.1rem; height: 1.1rem; accent-color: var(--ciano); margin: 0; flex: none; }
+.botao { display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem; padding: 0.45rem 1rem; border: 1px solid #b9c1ce; border-radius: 4px; background: var(--folha); color: var(--tinta); text-decoration: none; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.botao:hover { border-color: var(--tinta); color: var(--tinta); }
+.botao.primario { background: var(--ciano); border-color: var(--ciano); color: #fff; font-weight: 600; }
+.botao.primario:hover { background: var(--ciano-escuro); border-color: var(--ciano-escuro); color: #fff; }
+.botao.perigoso { border-color: var(--magenta); color: var(--magenta); }
+.botao:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pilha { display: grid; gap: 1rem; }
+.estreito { max-width: 26rem; }
+.linha { display: flex; gap: 0.5rem; align-items: center; }
+.acoes { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 1rem 0; }
+.filtros { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; background: var(--folha); border: 1px solid var(--linha); border-radius: 6px; padding: 0.9rem 1rem; margin-bottom: 1rem; }
+.filtros label { flex: 1 1 11rem; }
+.filtros label.marcar { flex: 0 0 auto; min-height: 2.5rem; }
+/* Fichas ocupam a largura da página, numa grade fixa de 4 colunas (2 no tablet, 1 no celular).
+   .duplo e .triplo ocupam 2 e 3 colunas; .largo, a linha inteira. */
+.ficha fieldset { border: 1px solid var(--linha); border-radius: 6px; background: var(--folha); padding: 1.25rem; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem 1.25rem; min-width: 0; }
+.ficha .duplo { grid-column: span 2; }
+.ficha .triplo { grid-column: span 3; }
+.ficha .largo { grid-column: 1 / -1; }
+.ficha fieldset:disabled { opacity: 0.75; }
+/* Ficha de usuário: blocos de campos à esquerda, cartão de acesso à direita. */
+.ficha-colunas { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1.25rem; align-items: start; }
+.ficha-blocos { display: grid; gap: 1.25rem; }
+.ficha-usuario fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ficha legend { font-family: var(--mono); font-size: 0.72rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza); padding: 0 0.4rem; margin-left: -0.4rem; }
+.cartao-acesso { background: var(--folha); border: 1px solid var(--linha); border-radius: 6px; padding: 1.25rem; display: grid; gap: 0.85rem; align-content: start; }
+.cartao-acesso h2, .cartao-acesso p { margin: 0; }
+.cartao-acesso .aviso { margin: 0; }
+.cartao-acesso .botao { width: 100%; }
+.estado { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 1.05rem; }
+.ponto { width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--verde); flex: none; }
+.ponto.alerta { background: var(--magenta); }
+.ponto.inativo { background: #9aa5ba; }
+@media (max-width: 1100px) {
+  .ficha-colunas { grid-template-columns: minmax(0, 1fr); }
+  .ficha fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ficha .triplo { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .ficha fieldset, .ficha-usuario fieldset { grid-template-columns: minmax(0, 1fr); padding: 1rem; }
+  .ficha .duplo, .ficha .triplo { grid-column: 1 / -1; }
+}
+.envio { background: var(--folha); border: 1px solid var(--linha); border-radius: 6px; padding: 1.25rem; display: grid; gap: 0.75rem; justify-items: start; }
+.envio label { font-size: 1rem; }
+.perigo { margin-top: 1.5rem; }
+.carga { margin-bottom: 1rem; }
+.carga summary { cursor: pointer; font-weight: 500; padding: 0.4rem 0; color: var(--ciano-escuro); }
+.carga form { margin-top: 0.5rem; }
+.perigo summary { cursor: pointer; color: var(--magenta); font-weight: 500; padding: 0.4rem 0; }
+.perigo form { margin-top: 0.75rem; }
+code.senha { font-family: var(--mono); font-size: 1.1rem; background: var(--papel); padding: 0.2rem 0.5rem; border-radius: 3px; user-select: all; }
+
+/* Resumo e tira de andamento */
+.resumo { display: flex; flex-wrap: wrap; gap: 1px; background: var(--linha); border: 1px solid var(--linha); border-radius: 6px; overflow: hidden; margin-bottom: 1.25rem; }
+.resumo > div { flex: 1 1 14rem; background: var(--folha); padding: 1rem 1.15rem; display: grid; gap: 0.35rem; align-content: start; justify-items: start; }
+.rotulo { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza); }
+.resumo strong { font-size: 1.5rem; font-weight: 600; line-height: 1.1; }
+.resumo strong small { font-size: 0.9rem; font-weight: 400; }
+.resumo .grande { font-family: var(--display); font-stretch: 112%; font-weight: 750; }
+.tira { display: block; width: 100%; height: 6px; }
+.tira-fundo { fill: var(--linha); }
+.tira-feito { fill: var(--ciano); }
+.tira.completa .tira-feito { fill: var(--verde); }
+.col-tira { min-width: 8rem; }
+
+/* Carimbo: a marca do sistema. Quem libera, carimba. */
+.carimbo { display: inline-block; font-family: var(--mono); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.09em; padding: 0.15rem 0.45rem; border: 1.5px solid currentColor; border-radius: 3px; white-space: nowrap; vertical-align: middle; }
+.carimbo.pendente { color: var(--magenta); border-style: dashed; }
+.carimbo.liberado { color: var(--verde); transform: rotate(-2deg); }
+.carimbo.cancelado { color: var(--cinza); text-decoration: line-through; }
+.etiqueta { display: inline-block; white-space: nowrap; font-size: 0.75rem; background: var(--papel); border: 1px solid var(--linha); border-radius: 3px; padding: 0 0.4rem; color: var(--cinza); text-decoration: none; }
+.etiqueta.alerta { color: var(--magenta); border-color: currentColor; background: #fff; }
+
+/* Tabelas */
+.rolagem { overflow-x: auto; background: var(--folha); border: 1px solid var(--linha); border-radius: 6px; }
+.tabela { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.tabela th, .tabela td { padding: 0.55rem 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--linha); }
+.tabela th.d, .tabela td.d { text-align: right; }
+.tabela td.acoes-linha { white-space: nowrap; width: 1%; }
+.acoes-linha form { display: inline-block; vertical-align: middle; margin-left: 0.75rem; }
+.tabela thead th { font-family: var(--mono); font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: var(--cinza); background: #fafbfc; white-space: nowrap; }
+.tabela tbody tr:last-child td { border-bottom: 0; }
+.tabela tbody tr:hover td { background: #f8fafc; }
+.tabela tfoot th { border-top: 2px solid var(--tinta); border-bottom: 0; }
+.tabela .estreita { width: 2.2rem; padding-right: 0; }
+.tabela input:not([type="checkbox"]) { min-height: 2.2rem; padding: 0.3rem 0.5rem; }
+.conferencia td input:not([type="checkbox"]) { min-width: 14rem; }
+/* Campos dentro de tabelas não encolhem até sumir: a tabela rola de lado. */
+.tabela td input:not([type="checkbox"]):not([type="radio"]) { min-width: 9rem; }
+.tabela td input.curto:not([type="checkbox"]) { min-width: 6.5rem; width: 7rem; }
+.tabela td select { min-width: 10rem; }
+.tabela.conferencia td input.qtd { min-width: 4.75rem; width: 5.5rem; text-align: right; }
+.mover { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin: 0.75rem 0 0; }
+.mover label { flex: 1 1 20rem; max-width: 34rem; }
+.conferencia tr.grupo th { background: var(--papel); font-family: var(--display); font-stretch: 108%; font-size: 0.98rem; font-weight: 700; border-top: 1px solid var(--linha); }
+.conferencia tr.cancelado td { color: var(--cinza); }
+.cod { font-family: var(--mono); font-weight: 600; color: var(--ciano-escuro); margin-right: 0.35rem; }
+.barra-lote { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-bottom: 0.6rem; position: sticky; top: 0; background: var(--papel); padding: 0.5rem 0; z-index: 2; }
+.historico { list-style: none; margin: 0; padding: 0; background: var(--folha); border: 1px solid var(--linha); border-radius: 6px; }
+.historico li { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--linha); font-size: 0.9rem; }
+.historico li:last-child { border-bottom: 0; }
+.historico .num { color: var(--cinza); margin-right: 0.5rem; }
+
+/* Relatório */
+.relatorio { background: var(--folha); border: 1px solid var(--linha); border-radius: 6px; padding: 1.5rem; }
+.relatorio > header { border-bottom: 2px solid var(--tinta); padding-bottom: 0.75rem; margin-bottom: 1rem; }
+.relatorio > header h2 { margin: 0; font-size: 1.3rem; }
+.relatorio .empresa { margin: 0 0 0.15rem; font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza); }
+.cabeca-pagina p { margin: 0; }
+.relatorio > header p { margin: 0.25rem 0 0; }
+.relatorio .bloco { margin-bottom: 1.5rem; break-inside: avoid; }
+.relatorio h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+.so-impressao { display: none; }
+.cabeca-pagina .empresa { font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza); }
+.cabeca-secao { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1.5rem; }
+.cabeca-secao h2 { margin: 0; }
+.codigo-recuperacao { font-family: var(--mono); font-size: 1.6rem; font-weight: 600; letter-spacing: 0.08em; padding: 0.9rem 1.1rem; border: 2px dashed var(--tinta); border-radius: 6px; background: var(--papel); text-align: center; user-select: all; }
+.periodos-regra { display: grid; gap: 0.75rem; border: 1px solid var(--linha); border-radius: 6px; background: var(--folha); padding: 1rem 1.25rem; margin: 0; }
+.periodos-regra legend { padding: 0 0.35rem; font-weight: 600; }
+.periodos-regra small { color: var(--cinza); }
+.periodos-regra label input.curto[name="dia"] { width: 4.5rem; }
+/* Duas colunas de cartões (Minha conta, Fechamento); uma só no tablet e no celular. */
+.duas-colunas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; align-items: start; }
+.duas-colunas.mais-direita { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.tabela td.nowrap, .tabela th.nowrap { white-space: nowrap; }
+.cartao { background: var(--folha); border: 1px solid var(--linha); border-radius: 6px; padding: 1.25rem; display: grid; gap: 1rem; align-content: start; min-width: 0; }
+.cartao > h2 { margin: 0; }
+.cartao > p, .cartao .aviso { margin: 0; }
+.cartao .pilha { max-width: 30rem; }
+.cartao .periodos-regra { border: 0; padding: 0; background: none; }
+@media (max-width: 1100px) { .duas-colunas, .duas-colunas.mais-direita { grid-template-columns: minmax(0, 1fr); } }
+.total-geral { border-top: 2px solid var(--tinta); padding-top: 0.75rem; text-align: right; font-size: 1.05rem; }
+
+/* Entrada */
+.entrada { display: grid; place-items: center; min-height: 100vh; padding: 1rem; background: var(--tinta); }
+.entrada-caixa { width: 100%; max-width: 24rem; padding: 2.25rem 2rem; background: var(--folha); border-radius: 6px; display: grid; gap: 1rem; }
+.entrada-caixa h1 { font-stretch: 125%; font-weight: 800; font-size: 2.6rem; line-height: 1; }
+.entrada-sub { margin: 0; color: var(--cinza); }
+.entrada-caixa .aviso { background: var(--papel); margin: 0; }
+.entrada-caixa .nota { margin: 0; }
+
+/* Tablet e celular: a lateral vira uma barra no topo. Marca e usuário numa linha; o menu numa faixa
+   que rola de lado, em vez de empilhar várias linhas de links. */
+@media (max-width: 860px) {
+  .casca { grid-template-columns: minmax(0, 1fr); }
+  .lateral { position: static; height: auto; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.6rem 1rem; padding: 0.75rem 1rem 0.5rem; }
+  .marca { grid-template-columns: auto auto; align-items: center; gap: 0.5rem; }
+  .marca-sub { display: none; }
+  .quem { grid-row: 1; grid-column: 2; justify-self: end; margin: 0; border: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.15rem 0.75rem; align-items: center; font-size: 0.82rem; }
+  .quem span { margin: 0; }
+  .lateral nav { grid-column: 1 / -1; display: flex; flex-wrap: nowrap; gap: 0.25rem; overflow-x: auto; overflow-y: hidden; margin: 0 -1rem; padding: 0 1rem 0.35rem; scrollbar-width: thin; }
+  .lateral nav a { flex: none; white-space: nowrap; border-left: 0; border-bottom: 3px solid transparent; border-radius: 4px 4px 0 0; padding: 0.45rem 0.7rem; }
+  .lateral nav a.ativo { border-bottom-color: #19b5dc; }
+  .nav-titulo { display: none; }
+  main { padding: 1.25rem 1rem 3rem; }
+  .cabeca h1 { font-size: 1.45rem; }
+}
+@media (max-width: 480px) {
+  .quem strong, .quem span { display: none; }
+  .resumo > div { flex-basis: 100%; }
+  .acoes .botao { flex: 1 1 auto; }
+  /* Filtros em duas colunas; o primeiro e a busca ocupam a linha inteira. */
+  .filtros { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem 0.75rem; }
+  .filtros > label:first-of-type, .filtros > label:has(input[type="search"]), .filtros > label:has(input[type="file"]) { grid-column: 1 / -1; }
+  .filtros > .botao { justify-self: start; }
+  .entrada-caixa { padding: 1.75rem 1.25rem; }
+}
+
+@media screen { .relatorio { overflow-x: auto; } }
+@media (max-width: 640px) { .relatorio { padding: 1rem; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .botao, .lateral nav a { transition: background-color 0.12s, border-color 0.12s; }
+}
+
+@media print {
+  html { font-size: 11px; }
+  body { background: #fff; }
+  .lateral, .nao-imprime, .pular, .aviso { display: none !important; }
+  .casca { display: block; }
+  main { padding: 0; max-width: none; }
+  .relatorio { border: 0; padding: 0; }
+  .tabela tbody tr:hover td { background: none; }
+  .tabela thead { display: table-header-group; }
+  @page { margin: 14mm 12mm 16mm 25mm; @bottom-right { content: 'Pág. ' counter(page) ' de ' counter(pages); font-size: 9px; color: #5a6478; } }
+  /* Analítico: uma página por condomínio, cada uma com o próprio cabeçalho. */
+  .so-impressao { display: block; }
+  .relatorio.analitico > header, .relatorio.analitico .total-geral { display: none; }
+  .relatorio.analitico .bloco { break-inside: auto; break-before: page; page-break-before: always; margin: 0; }
+  .relatorio.analitico .bloco:first-of-type { break-before: auto; page-break-before: auto; }
+  .cabeca-pagina { border-bottom: 2px solid var(--tinta); padding-bottom: 0.5rem; margin: 0 0 1rem; }
+  .relatorio h3 { font-size: 1.3rem; }
+}
+
+/* Lista suspensa das descrições padrão */
+.combo { position: relative; display: block; }
+.combo > input { padding-right: 2.6rem !important; }
+.combo-botao { position: absolute; top: 1px; right: 1px; bottom: 1px; width: 2.4rem; border: 0; border-left: 1px solid var(--linha); border-radius: 0 3px 3px 0; background: var(--papel); cursor: pointer; }
+.combo-botao::after { content: ''; position: absolute; left: 50%; top: 50%; width: 0.45rem; height: 0.45rem; border-right: 2px solid var(--tinta); border-bottom: 2px solid var(--tinta); transform: translate(-50%, -70%) rotate(45deg); }
+.combo.aberto .combo-botao::after { transform: translate(-50%, -25%) rotate(225deg); }
+.combo-botao:hover { background: #e6edf3; }
+.combo-lista { position: fixed; z-index: 50; margin: 0; padding: 0.3rem; list-style: none; overflow-y: auto; background: var(--folha); border: 1px solid #b9c1ce; border-radius: 6px; box-shadow: 0 10px 28px rgba(27, 34, 51, 0.16); font-size: 0.92rem; }
+.combo-lista li[role="option"] { padding: 0.5rem 2rem 0.5rem 0.7rem; border-radius: 4px; cursor: pointer; position: relative; line-height: 1.3; }
+.combo-lista li[role="option"]:hover, .combo-lista li.ativo { background: #e3f1f6; }
+.combo-lista li[aria-selected="true"] { font-weight: 600; }
+.combo-lista li[aria-selected="true"]::after { content: '✓'; position: absolute; right: 0.7rem; color: var(--ciano-escuro); }
+.combo-titulo { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza); padding: 0.35rem 0.7rem 0.3rem; }
+.tabela .combo > input { min-width: 14rem; }
+@media print { .combo-botao, .combo-lista { display: none !important; } }
+
+/* Margem esquerda de 25 mm: é onde a folha é furada para a pasta de prestação de contas.
+   Folhas do relatório: A4, uma por condomínio, no espírito do relatório que a Contabilidade já usava.
+   Todas as medidas em mm para que tela, PDF e impressão tenham o mesmo enquadramento. */
+.resumo-folhas { margin: 0 0 1rem; }
+.folhas { overflow-x: auto; padding-bottom: 0.5rem; }
+.folha { --tinta-folha: #111; --linha-folha: #c9ced6; --zebra: #f3f4f6; --marca: #2c4a82;
+  box-sizing: border-box; width: 210mm; height: 297mm; margin: 0 auto 1.5rem; padding: 12mm 10mm 10mm 25mm;
+  display: flex; flex-direction: column; background: #fff; color: var(--tinta-folha);
+  font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; line-height: 1.3; font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 3px rgba(27, 34, 51, 0.18), 0 8px 24px rgba(27, 34, 51, 0.08); }
+.folha p { margin: 0; }
+.folha .num { font-family: inherit; font-size: inherit; }
+.folha-cabeca { display: grid; grid-template-columns: 15mm 1fr 30mm; align-items: center; gap: 5mm; padding-bottom: 3mm; border-bottom: 0.6mm solid var(--marca); }
+.folha-logo { width: 15mm; height: auto; display: block; }
+.folha-ident { text-align: center; }
+.folha-empresa { font-size: 12.5pt; font-weight: 700; letter-spacing: 0.01em; }
+.folha-titulo { font-size: 9pt; font-weight: 700; letter-spacing: 0.06em; margin-top: 1.2mm !important; }
+.folha-previa { border: 0.3mm solid currentColor; padding: 0 1.2mm; margin-left: 1.5mm; letter-spacing: 0.08em; }
+.folha-periodo { font-size: 9pt; margin-top: 1mm !important; }
+.folha-pag { text-align: right; font-size: 7.5pt; color: #555; display: grid; }
+.folha-pag b { font-size: 9.5pt; color: var(--tinta-folha); }
+.folha-corpo { flex: 1; min-height: 0; }
+.folha-cond { font-size: 12.5pt; font-weight: 700; text-align: center; margin: 5mm 0 4mm; }
+.folha-cond small { font-size: 8.5pt; font-weight: 400; color: #555; }
+.folha-resumo { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0 0 5mm; }
+.folha-resumo td { border: 0.25mm solid var(--linha-folha); padding: 2mm 2.5mm; vertical-align: top; }
+.folha-resumo span { display: block; font-size: 7pt; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
+.folha-resumo b { display: block; font-size: 10.5pt; margin-top: 0.6mm; }
+.folha-resumo em { display: block; font-style: normal; font-size: 8.5pt; color: #333; }
+/* Mais grossa que as vizinhas: na tabela colapsada, a borda mais larga vence nos quatro lados. */
+.folha-resumo td.total { background: var(--zebra); border: 0.4mm solid var(--tinta-folha); }
+.folha-tabela { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.folha-tabela col.c-nr { width: 14mm; } .folha-tabela col.c-data { width: 20mm; } .folha-tabela col.c-item { width: 30mm; }
+.folha-tabela col.c-qtd { width: 14mm; } .folha-tabela col.c-unit { width: 13mm; } .folha-tabela col.c-val { width: 22mm; }
+.folha-tabela col.c-cod { width: 14mm; } .folha-tabela col.c-num { width: 26mm; }
+.folha-tabela th, .folha-tabela td { padding: 0.55mm 1.5mm; line-height: 1.25; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+.folha-tabela td:nth-child(3) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folha-tabela.indice td:nth-child(3) { white-space: normal; }
+.folha-tabela th { white-space: nowrap; font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 0.35mm solid var(--tinta-folha); padding-bottom: 1.2mm; }
+.folha-tabela tbody tr:nth-child(even) td { background: var(--zebra); }
+.folha-tabela tbody td { border-bottom: 0.15mm solid #e3e6eb; }
+.folha-tabela td.nr { color: #6b7280; font-size: 7.5pt; }
+.folha-tabela td { white-space: normal; } .folha-tabela td.num { white-space: nowrap; }
+.folha-tabela .d { text-align: right; }
+.folha-tabela tfoot td { border-top: 0.35mm solid var(--tinta-folha); padding-top: 2mm; font-weight: 700; font-size: 10pt; white-space: nowrap; }
+.folha-rodape { border-top: 0.25mm solid var(--linha-folha); padding-top: 2mm; font-size: 7.5pt; color: #555; text-align: center; }
+@page folha { size: A4; margin: 0; }
+@media print {
+  .folhas { overflow: visible; padding: 0; }
+  .folha { page: folha; box-shadow: none; margin: 0; break-after: page; page-break-after: always; overflow: hidden; }
+  .folha:last-child { break-after: auto; page-break-after: auto; }
+  .folha-tabela tbody tr:nth-child(even) td, .folha-resumo td.total { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* Ordenação pelos títulos das colunas */
+.tabela th button.ordenar { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35em; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
+.tabela th button.ordenar::after { content: '↕'; opacity: 0.35; font-size: 0.95em; }
+.tabela th[aria-sort=ascending] button.ordenar::after { content: '↑'; opacity: 1; }
+.tabela th[aria-sort=descending] button.ordenar::after { content: '↓'; opacity: 1; }
+.tabela th button.ordenar:hover { text-decoration: underline; }
+.tabela th button.ordenar:focus-visible { outline: 2px solid var(--ciano); outline-offset: 2px; border-radius: 2px; }
+.tabela th.d button.ordenar { flex-direction: row-reverse; }
+.tabela td.alterado { color: var(--ciano-escuro, #0a6f85); font-weight: 600; }
+
+/* Com lançamento em aberto, nada do relatório sai na impressão (nem pelo Ctrl+P). */
+.bloqueio-impressao { display: none; }
+@media print {
+  .sem-impressao, .relatorio.sem-impressao { display: none !important; }
+  .bloqueio-impressao { display: block; font: 700 14pt Arial, sans-serif; text-align: center; margin-top: 40mm; }
+}
+
+/* Conferência: nomes dos arquivos impressos de cada lançamento */
+.conferencia td.arquivos { max-width: 15rem; font-size: 0.85rem; color: var(--cinza); }
+.conferencia td.arquivos .arquivo { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 15rem; }
+.conferencia td.arquivos .nota { display: block; font-size: 0.8rem; }

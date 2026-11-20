@@ -1,0 +1,28 @@
+[Unit]
+Description=COPP - copias e impressoes por condominio
+After=network.target
+
+[Service]
+Type=simple
+User=copp
+Group=copp
+WorkingDirectory=/opt/copp
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server.js
+Restart=on-failure
+RestartSec=3
+Environment=NODE_ENV=production
+Environment=PORT=3210
+Environment=HOST=127.0.0.1
+Environment=DATA_DIR=/var/lib/copp
+Environment=COOKIE_SEGURO=1
+Environment=TZ=America/Sao_Paulo
+
+# Endurecimento: o servico so escreve na pasta de dados.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/copp
+
+[Install]
+WantedBy=multi-user.target

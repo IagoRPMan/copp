@@ -1,0 +1,39 @@
+<%- include('partials/topo', { titulo: 'Fechamento do mês' }) %>
+<header class="cabeca"><h1>Fechamento do mês</h1></header>
+<div class="duas-colunas mais-direita">
+  <section class="cartao">
+    <h2>Regra de fechamento</h2>
+    <p class="nota">Define as datas de cada competência: até onde vai o mês que os responsáveis conferem e que a Contabilidade recebe. A competência leva o nome do mês em que o período termina. Nos relatórios, qualquer mês também pode ser tirado pelo calendário ou de 16 a 15, além de um intervalo livre de datas.</p>
+    <form method="post" action="/cadastros/fechamento" class="pilha">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <fieldset class="periodos-regra">
+        <legend>O mês começa no dia</legend>
+        <% const ex1 = exemplo(1); const ex16 = exemplo(16); const outro = dia !== 1 && dia !== 16; %>
+        <label class="marcar"><input type="radio" name="regra" value="1"<%= dia === 1 ? ' checked' : '' %>> 1º: mês do calendário <small>(ex.: <%= fmt.periodo(ex1.de, ex1.ate) %>)</small></label>
+        <label class="marcar"><input type="radio" name="regra" value="16"<%= dia === 16 ? ' checked' : '' %>> 16: do dia 16 ao dia 15 <small>(ex.: <%= fmt.periodo(ex16.de, ex16.ate) %>)</small></label>
+        <label class="marcar"><input type="radio" name="regra" value="outro"<%= outro ? ' checked' : '' %>> Outro dia:
+          <input name="dia" class="curto num" inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" value="<%= outro ? dia : '' %>" aria-label="Dia de início do mês (2 a 28)"></label>
+      </fieldset>
+      <p class="nota">Ao mudar, os meses que já têm lançamento liberado mantêm as datas. Os demais são refeitos pela regra nova, e os lançamentos deles mudam de mês conforme a data. O primeiro mês depois da troca pode sair mais curto ou mais longo, para não haver buraco nem sobreposição.</p>
+      <div><button class="botao primario" data-confirmar="Aplicar a regra nova de fechamento?">Salvar regra</button></div>
+    </form>
+  </section>
+
+  <section class="cartao">
+    <h2>Períodos</h2>
+    <% if (!periodos.length) { %>
+      <p class="nota">Nenhum período ainda. Eles são criados conforme entram lançamentos.</p>
+    <% } else { %>
+    <div class="rolagem"><table class="tabela">
+      <thead><tr><th>Competência</th><th>De</th><th>Até</th><th class="d">Lançamentos</th><th>Situação</th></tr></thead>
+      <tbody>
+      <% periodos.forEach((p) => { %>
+        <tr><td><%= fmt.comp(p.competencia) %></td><td class="num"><%= fmt.data(p.de) %></td><td class="num"><%= fmt.data(p.ate) %></td><td class="d num"><%= fmt.num(p.lancamentos) %></td>
+          <td class="nowrap"><%= !p.lancamentos ? 'Sem lançamentos' : p.pendentes ? `Em conferência (${p.pendentes} pendente${p.pendentes > 1 ? 's' : ''})` : 'Liberado para a Contabilidade' %><%= p.liberados ? ' · datas fixas' : '' %></td></tr>
+      <% }) %>
+      </tbody>
+    </table></div>
+    <% } %>
+  </section>
+</div>
+<%- include('partials/rodape') %>

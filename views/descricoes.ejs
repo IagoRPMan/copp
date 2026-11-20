@@ -1,0 +1,23 @@
+<%- include('partials/topo', { titulo: 'Descrições padrão' }) %>
+<header class="cabeca"><h1>Descrições padrão</h1></header>
+<p class="nota">São os nomes de despesa que se repetem todo mês. Aparecem como sugestão quando alguém edita a descrição de um lançamento; quem confere continua livre para escrever outro texto.</p>
+<form method="post" action="/cadastros/descricoes" class="filtros">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label>Nova descrição <input name="texto" maxlength="300" data-caixa="alta" required></label>
+  <button class="botao primario">Incluir na lista</button>
+</form>
+<% if (!lista.length) { %>
+  <p class="vazio">Nenhuma descrição padrão. Inclua as que a equipe mais usa.</p>
+<% } else { %>
+<div class="rolagem"><table class="tabela">
+  <thead><tr><th>Descrição</th><th></th></tr></thead>
+  <tbody>
+  <% lista.forEach((d) => { const f = 'desc' + d.id; %>
+    <tr><td><input form="<%= f %>" name="texto" value="<%= d.texto %>" maxlength="300" data-caixa="alta" required aria-label="Descrição <%= d.texto %>"></td>
+      <td class="d acoes-linha"><form id="<%= f %>" method="post" action="/cadastros/descricoes/<%= d.id %>"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="botao">Salvar</button></form>
+        <form method="post" action="/cadastros/descricoes/<%= d.id %>/remover"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="link perigoso" data-confirmar="Remover &quot;<%= d.texto %>&quot; da lista de sugestões?">Remover</button></form></td></tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<% } %>
+<%- include('partials/rodape') %>

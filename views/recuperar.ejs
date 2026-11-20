@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esqueci minha senha · COPP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=<%= versao %>">
+</head>
+<body class="entrada">
+<main class="entrada-caixa">
+  <h1>Senha nova</h1>
+  <% if (erro) { %><div class="aviso aviso-erro" role="alert"><%= erro %></div><% } %>
+  <% if (ok) { %><div class="aviso aviso-ok" role="status"><%= ok %></div>
+    <p><a class="botao" href="/login">Voltar para a entrada</a></p>
+  <% } else { %>
+  <p class="entrada-sub">Use o código de recuperação que o COPP mostrou quando você criou sua senha.</p>
+  <form method="post" action="/recuperar" class="pilha">
+    <label>Usuário <input name="login" value="<%= login %>" autocomplete="username" required<%= login ? '' : ' autofocus' %>></label>
+    <label>Código de recuperação <input name="codigo" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" required<%= login ? ' autofocus' : '' %>></label>
+    <label>Senha nova <input name="nova" type="password" autocomplete="new-password" minlength="8" required><small>Pelo menos 8 caracteres.</small></label>
+    <label>Repita a senha nova <input name="repetir" type="password" autocomplete="new-password" minlength="8" required></label>
+    <button class="botao primario">Criar senha nova</button>
+  </form>
+  <details>
+    <summary>Não tenho o código</summary>
+    <form method="post" action="/recuperar/pedido" class="pilha">
+      <p class="nota">Peça uma senha temporária ao administrador. O pedido aparece para ele no cadastro de usuários.</p>
+      <label>Usuário <input name="login" value="<%= login %>" autocomplete="username" required></label>
+      <button class="botao">Pedir senha temporária</button>
+    </form>
+  </details>
+  <p class="nota"><a href="/login">Voltar para a entrada</a></p>
+  <% } %>
+</main>
+</body>
+</html>

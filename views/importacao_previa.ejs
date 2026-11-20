@@ -1,0 +1,62 @@
+<%- include('partials/topo', { titulo: 'Prévia da importação' }) %>
+<header class="cabeca"><h1>Prévia da importação</h1><a class="botao" href="/importacoes">Descartar e voltar</a></header>
+<p class="nota">Arquivo <strong><%= arquivo %></strong>. Nada foi gravado ainda.</p>
+
+<section class="resumo">
+  <div><span class="rotulo">Trabalhos novos</span><strong class="num"><%= fmt.num(previa.novos) %> <small>de <%= fmt.num(previa.linhas) %> linhas</small></strong>
+    <small><%= fmt.num(previa.duplicados) %> já importados · <%= fmt.num(previa.ignorados) %> ignorados</small></div>
+  <div><span class="rotulo">Lançamentos a criar</span><strong class="num"><%= fmt.num(previa.criados) %><% if (previa.acrescidos) { %> <small>+ <%= previa.acrescidos %> acrescidos</small><% } %></strong>
+    <small><%= previa.competencias.map(fmt.comp).join(', ') || '—' %><% if (previa.alertas) { %> · <span class="texto-alerta"><%= previa.alertas %> com alerta</span><% } %></small></div>
+  <div><span class="rotulo">Valor pela tabela de preços</span><strong class="num"><%= fmt.brl(previa.valor) %></strong>
+    <small>O custo calculado pelo PaperCut é desconsiderado</small></div>
+</section>
+
+<% if (!previa.duplexAtivo) { %><div class="aviso aviso-aviso">O item "Dupla face" está desativado: páginas em dupla face entram como cópia simples. Para cobrá-las à parte, ative o item e defina o preço em <a href="/cadastros/itens">Itens e preços</a> antes de confirmar.</div><% } %>
+<% if (previa.contasNovas.length) { %><div class="aviso aviso-aviso"><strong><%= previa.contasNovas.length %> conta(s) do PaperCut ainda sem condomínio cadastrado.</strong> Elas serão cadastradas automaticamente, com o código tirado do nome da conta: <%= previa.contasNovas.join('; ') %>.</div><% } %>
+<% if (previa.usuariosNovos.length) { %><div class="aviso aviso-aviso"><strong><%= previa.usuariosNovos.length %> usuário(s) novo(s)</strong> serão cadastrados como responsáveis, ainda sem senha: <%= previa.usuariosNovos.map((u) => u.nome).join('; ') %>.</div><% } %>
+<% if (previa.semLancamento) { %><div class="aviso aviso-aviso"><%= previa.semLancamento %> trabalho(s) pertencem a contas marcadas para não gerar lançamento.</div><% } %>
+
+<% if (previa.vinculadas) { %><div class="aviso"><strong><%= previa.vinculadas %> conta(s) do PaperCut foram ligadas a condomínios já cadastrados pelo código</strong> (por exemplo, "076 - …" ao condomínio 0076). Confira os nomes na tabela abaixo.</div><% } %>
+
+<% if (previa.carteiras.length) { %>
+<h2>Por carteira</h2>
+<div class="rolagem"><table class="tabela">
+  <thead><tr><th>Quem recebe para aprovação</th><th class="d">Condomínios</th><th class="d">Páginas</th><th class="d">Valor</th></tr></thead>
+  <tbody>
+  <% previa.carteiras.forEach((c) => { %>
+    <tr><td><%= c.nome %></td><td class="d num"><%= fmt.num(c.condominios) %></td><td class="d num"><%= fmt.num(c.paginas) %></td><td class="d num"><%= fmt.brl(c.valor) %></td></tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<% } %>
+
+<h2>Por conta do PaperCut</h2>
+<% if (!previa.contas.length) { %>
+  <p class="vazio">Nenhum trabalho novo neste arquivo: tudo já tinha sido importado ou foi ignorado.</p>
+<% } else { %>
+<div class="rolagem"><table class="tabela">
+  <thead><tr><th>Conta</th><th>Condomínio</th><th class="d">Trabalhos</th><th class="d">Simples</th><th class="d">Coloridas</th><th class="d">Dupla face</th><th class="d">Valor</th></tr></thead>
+  <tbody>
+  <% previa.contas.forEach((c) => { %>
+    <tr><td><%= c.conta %><% if (c.nova) { %> <span class="etiqueta">nova</span><% } %><% if (!c.gera) { %> <span class="etiqueta">não gera lançamento</span><% } %></td>
+      <td><%= c.condominio || 'Será cadastrado' %></td>
+      <td class="d num"><%= fmt.num(c.trabalhos) %></td><td class="d num"><%= fmt.num(c.simples) %></td><td class="d num"><%= fmt.num(c.colorida) %></td><td class="d num"><%= fmt.num(c.duplex) %></td><td class="d num"><%= fmt.brl(c.valor) %></td></tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<% } %>
+
+<% if (motivos.length) { %>
+<h2>Linhas ignoradas</h2>
+<ul class="historico"><% motivos.forEach((m) => { %><li><span class="num"><%= fmt.num(m.quantidade) %></span> <%= m.motivo %></li><% }) %></ul>
+<% } %>
+
+<% if (previa.novos) { %>
+<form method="post" action="/importacoes/confirmar" class="acoes">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="hash" value="<%= hash %>">
+  <input type="hidden" name="arquivo" value="<%= arquivo %>">
+  <button class="botao primario">Confirmar e lançar como pendentes</button>
+</form>
+<% } %>
+<%- include('partials/rodape') %>

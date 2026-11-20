@@ -1,0 +1,21 @@
+<%- include('partials/topo', { titulo: 'Auditoria' }) %>
+<header class="cabeca"><h1>Auditoria</h1></header>
+<form method="get" class="filtros">
+  <label>Buscar <input type="search" name="q" value="<%= q %>" placeholder="Pessoa, ação, texto ou nº do lançamento"></label>
+  <button class="botao">Buscar</button>
+</form>
+<% if (!lista.length) { %>
+  <p class="vazio"><%= q ? 'Nenhum registro com esta busca.' : 'Nenhuma ação registrada ainda.' %></p>
+<% } else { %>
+<div class="rolagem"><table class="tabela" data-ordenar>
+  <thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Lançamento</th><th>Detalhe</th></tr></thead>
+  <tbody>
+  <% lista.forEach((a) => { %>
+    <tr><td class="num"><%= fmt.dataHora(a.criado_em) %></td><td><%= a.usuario_nome || 'Sistema' %></td><td><%= a.acao %></td>
+      <td class="num"><% if (a.lancamento_id) { %><a href="/lancamentos/<%= a.lancamento_id %>"><%= a.lancamento_id %></a><% } %></td><td class="quebra"><%= a.detalhe || '' %></td></tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<p class="nota">Mostra os 500 registros mais recentes.</p>
+<% } %>
+<%- include('partials/rodape') %>

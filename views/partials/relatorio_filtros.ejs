@@ -1,0 +1,13 @@
+<%# Abas e filtro de período, comuns aos dois relatórios. %>
+<nav class="abas nao-imprime" aria-label="Relatórios">
+  <a href="/relatorios"<%- aba === 'condominio' ? ' class="ativa" aria-current="page"' : '' %>>Por condomínio</a>
+  <a href="/relatorios/funcionarios"<%- aba === 'funcionario' ? ' class="ativa" aria-current="page"' : '' %>>Despesas por funcionário</a>
+</nav>
+<% if (emConferencia.length) { %>
+  <div class="aviso aviso-aviso nao-imprime">
+    <strong><%= emConferencia.map((c) => fmt.comp(c.competencia)).join(', ') %> ainda em conferência:</strong>
+    faltam <%= fmt.num(emConferencia.reduce((s, c) => s + c.pendentes, 0)) %> lançamento(s).
+    <% if (pendencias.length) { %>Aguardando <%= pendencias.map((p) => p.nome + ' (' + p.pendentes + ')').join(', ') %>.<% } %>
+    <%= admin ? 'Você vê uma prévia só com o que já foi liberado; a Contabilidade ainda não recebe esse mês.' : 'Esse mês só entra no relatório quando todos liberarem.' %>
+  </div>
+<% } %>

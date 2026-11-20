@@ -1,0 +1,33 @@
+<% const titulos = { primeiro: 'Senha criada', novo: 'Código novo', recuperou: 'Senha nova criada' }; %>
+<% if (logado) { %>
+<%- include('partials/topo', { titulo: titulos[motivo] }) %>
+<header class="cabeca"><h1><%= titulos[motivo] %></h1></header>
+<div class="pilha estreito">
+<% } else { %>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= titulos[motivo] %> · COPP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=<%= versao %>">
+</head>
+<body class="entrada">
+<main class="entrada-caixa">
+  <h1><%= titulos[motivo] %></h1>
+<% } %>
+  <p><%= motivo === 'recuperou' ? 'Sua senha foi trocada e o código antigo deixou de valer. Este é o seu código de recuperação novo:' : motivo === 'primeiro' ? 'Sua senha está salva. Este é o seu código de recuperação:' : 'O código anterior deixou de valer. Este é o novo:' %></p>
+  <p class="codigo-recuperacao" aria-label="Código de recuperação"><%= codigo %></p>
+  <p class="nota">Se você esquecer a senha, é com este código que você cria uma nova, em "Esqueci minha senha". <strong>Anote ou guarde num lugar seguro agora: ele não aparece de novo.</strong> Cada código vale para uma recuperação; depois disso o COPP mostra outro.</p>
+  <p><a class="botao primario" href="<%= logado ? '/' : '/login' %>"><%= logado ? 'Já guardei, continuar' : 'Já guardei, entrar' %></a></p>
+<% if (logado) { %>
+</div>
+<%- include('partials/rodape') %>
+<% } else { %>
+</main>
+</body>
+</html>
+<% } %>

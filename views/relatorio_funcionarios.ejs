@@ -1,0 +1,73 @@
+<%- include('partials/topo', { titulo: 'Despesas por funcionário' }) %>
+<header class="cabeca nao-imprime"><h1>Relatórios</h1></header>
+<%- include('partials/relatorio_filtros', { aba: 'funcionario' }) %>
+
+<% if (!comps.length) { %>
+  <p class="vazio">Ainda não há lançamentos. O relatório aparece aqui quando os responsáveis liberarem os lançamentos.</p>
+<% } else { const periodo = fmt.data(de) + ' a ' + fmt.data(ate); %>
+<form method="get" class="filtros nao-imprime">
+  <label>Mês
+    <select name="competencia" data-enviar data-limpa="de,ate">
+      <% if (intervalo) { %><option value="" selected>Período escolhido ao lado</option><% } %>
+      <% comps.forEach((c) => { %><option value="<%= c.competencia %>"<%= !intervalo && competencia && c.competencia === competencia.competencia ? ' selected' : '' %>><%= fmt.comp(c.competencia) %> (<%= fmt.periodo(c.de, c.ate) %>) · <%= c.liberada ? 'liberado' : 'em conferência' %></option><% }) %>
+    </select></label>
+  <label>Recorte do mês
+    <select name="recorte" data-enviar>
+      <% Object.entries(recortes).forEach(([k, nome]) => { %><option value="<%= k %>"<%= k === recorte ? ' selected' : '' %>><%= nome %></option><% }) %>
+    </select></label>
+  <label>Ou de <input type="date" name="de" value="<%= intervalo ? de : '' %>"></label>
+  <label>até <input type="date" name="ate" value="<%= intervalo ? ate : '' %>"></label>
+  <label>Funcionário
+    <select name="funcionario" data-enviar>
+      <option value="">Todos (resumo)</option>
+      <% todos.forEach((f) => { %><option value="<%= f.chave %>"<%= f.chave === chave ? ' selected' : '' %>><%= f.nome %></option><% }) %>
+    </select></label>
+  <button class="botao">Atualizar</button>
+</form>
+
+<% if (!visivel) { %>
+  <p class="vazio">O relatório deste período fica disponível assim que todos os responsáveis liberarem seus lançamentos.</p>
+<% } else { %>
+  <div class="acoes nao-imprime">
+    <% if (emConferencia.length) { %>
+    <button type="button" class="botao primario" disabled>Imprimir ou salvar em PDF</button>
+    <button type="button" class="botao" disabled>Baixar planilha (CSV)</button>
+    <span class="nota">Impressão e planilha ficam disponíveis quando não houver nenhum lançamento em aberto no período.</span>
+    <% } else { %>
+    <button type="button" class="botao primario" data-imprimir>Imprimir ou salvar em PDF</button>
+    <a class="botao" href="/relatorios/funcionarios/csv?<%= consulta %>">Baixar planilha (CSV)</a>
+    <% } %>
+  </div>
+  <% if (emConferencia.length) { %><p class="bloqueio-impressao">Este relatório não pode ser impresso: há lançamentos em aberto no período.</p><% } %>
+  <article class="relatorio<%= emConferencia.length ? ' sem-impressao' : '' %>">
+    <header>
+      <p class="empresa"><%= empresa %></p>
+      <h2>Despesas por funcionário<%= escolhido ? ' · ' + escolhido.nome : '' %></h2>
+      <p>Período: <strong><%= periodo %></strong><% if (emConferencia.length) { %> · <strong>PRÉVIA, período com mês não liberado</strong><% } %></p>
+    </header>
+    <% if (!todos.length) { %>
+      <p class="vazio">Nenhum lançamento liberado neste período.</p>
+    <% } else if (escolhido) { %>
+      <table class="tabela">
+        <thead><tr><th>Data</th><th>Nº</th><th>Condomínio</th><th>Item</th><th>Descrição</th><th class="d">Qtde</th><th class="d">Valor</th></tr></thead>
+        <tbody><% escolhido.linhas.forEach((l) => { %>
+          <tr><td class="num"><%= fmt.data(l.data) %></td><td class="num"><%= l.id %></td><td><span class="cod"><%= l.cond_codigo %></span><%= l.cond_nome %></td>
+            <td><span class="num"><%= fmt.cod4(l.item_codigo) %></span> · <%= l.item_desc %></td><td><%= l.descricao %></td><td class="d num"><%= fmt.num(l.quantidade) %></td><td class="d num"><%= fmt.brl(l.valor) %></td></tr>
+        <% }) %></tbody>
+        <tfoot><tr><th colspan="5">Total de <%= escolhido.nome %> · <%= fmt.num(escolhido.paginas) %> página(s), <%= fmt.num(escolhido.conducoes) %> condução(ões)</th><th></th><th class="d num"><%= fmt.brl(escolhido.total) %></th></tr></tfoot>
+      </table>
+    <% } else { %>
+      <table class="tabela">
+        <thead><tr><th>Funcionário</th><th class="d">Páginas</th><th class="d">Cópias</th><th class="d">Conduções</th><th class="d">Condução</th><th class="d">Total</th><th class="nao-imprime"></th></tr></thead>
+        <tbody><% todos.forEach((f) => { %>
+          <tr><td><%= f.nome %></td><td class="d num"><%= fmt.num(f.paginas) %></td><td class="d num"><%= fmt.brl(f.valorCopias) %></td><td class="d num"><%= fmt.num(f.conducoes) %></td><td class="d num"><%= fmt.brl(f.valorConducao) %></td><td class="d num"><%= fmt.brl(f.total) %></td>
+            <td class="d nao-imprime"><a href="/relatorios/funcionarios?<%= consulta ? consulta + '&' : '' %>funcionario=<%= encodeURIComponent(f.chave) %>">Detalhar</a></td></tr>
+        <% }) %></tbody>
+        <tfoot><tr><th>Total geral</th><th class="d num"><%= fmt.num(total.paginas) %></th><th class="d num"><%= fmt.brl(total.valorCopias) %></th><th class="d num"><%= fmt.num(total.conducoes) %></th><th class="d num"><%= fmt.brl(total.valorConducao) %></th><th class="d num"><%= fmt.brl(total.total) %></th><th class="nao-imprime"></th></tr></tfoot>
+      </table>
+    <% } %>
+    <p class="nota">Cópias importadas do PaperCut são atribuídas a quem imprimiu cada trabalho, com as páginas registradas pelo PaperCut. Lançamentos manuais e de condução, ao funcionário informado.</p>
+  </article>
+<% } %>
+<% } %>
+<%- include('partials/rodape') %>

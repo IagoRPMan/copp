@@ -1,0 +1,67 @@
+<%- include('partials/topo', { titulo: u.id ? 'Editar usuário' : 'Novo usuário' }) %>
+<header class="cabeca"><h1><%= u.id ? u.nome || 'Editar usuário' : 'Novo usuário' %></h1><a class="botao" href="/cadastros/usuarios">Voltar à lista</a></header>
+<% if (erro) { %><div class="aviso aviso-erro" role="alert"><%= erro %></div><% } %>
+<% if (senhaGerada) { %>
+  <div class="aviso aviso-ok" role="status">
+    <strong>Senha temporária de <%= u.login %>:</strong> <code class="senha"><%= senhaGerada %></code>
+    <div>Anote e entregue agora. Ela não será mostrada de novo, e o sistema pede a troca no primeiro acesso.</div>
+  </div>
+<% } %>
+<form method="post" action="/cadastros/usuarios/<%= u.id || 'novo' %>" class="ficha ficha-usuario">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="ficha-colunas">
+    <div class="ficha-blocos">
+      <fieldset>
+        <legend>Pessoa</legend>
+        <label class="largo">Nome <input name="nome" value="<%= u.nome %>" maxlength="120" required autocomplete="off" data-caixa="alta"></label>
+        <label class="largo">E-mail <input name="email" type="email" value="<%= u.email || '' %>" maxlength="160" autocomplete="off" data-caixa="baixa">
+          <small>Opcional aqui: a própria pessoa informa no primeiro acesso.</small></label>
+        <label>Login <input name="login" value="<%= u.login %>" maxlength="60" required autocomplete="off" spellcheck="false">
+          <small>O mesmo usuário do PaperCut, para a importação reconhecer a pessoa.</small></label>
+        <label>Matrícula <input name="matricula" value="<%= u.matricula || '' %>" maxlength="20" autocomplete="off">
+          <small>Opcional. Código do gerente no sistema de condomínios.</small></label>
+      </fieldset>
+      <fieldset>
+        <legend>Permissões</legend>
+        <label>Perfil
+          <select name="papel">
+            <option value="responsavel"<%= u.papel !== 'admin' ? ' selected' : '' %>>Usuário</option>
+            <option value="admin"<%= u.papel === 'admin' ? ' selected' : '' %>>Administrador</option>
+          </select>
+          <small>Usuário confere e aprova lançamentos. Administrador tem poder total.</small></label>
+        <label>Departamento
+          <select name="departamento_id">
+            <option value="">Sem departamento</option>
+            <% departamentos.forEach((d) => { %><option value="<%= d.id %>"<%= d.id === u.departamento_id ? ' selected' : '' %>><%= d.nome %></option><% }) %>
+          </select>
+          <small>Contabilidade importa e emite relatórios. Diretoria vê todas as carteiras.</small></label>
+        <label class="largo">Responde a
+          <select name="superior_id">
+            <option value="">Ninguém</option>
+            <% superiores.filter((p) => p.id !== u.id).forEach((p) => { %><option value="<%= p.id %>"<%= p.id === u.superior_id ? ' selected' : '' %>><%= p.nome %> (<%= p.login %>)</option><% }) %>
+          </select>
+          <small>O superior enxerga e aprova a carteira de quem responde a ele.</small></label>
+      </fieldset>
+    </div>
+
+    <aside class="cartao-acesso" aria-label="Acesso ao sistema">
+      <h2>Acesso</h2>
+      <% if (u.id) { const estado = !u.ativo ? ['inativo', 'Inativo'] : u.tem_senha ? ['ok', 'Liberado'] : ['alerta', 'Sem senha']; %>
+        <p class="estado"><span class="ponto <%= estado[0] %>" aria-hidden="true"></span><%= estado[1] %></p>
+        <p class="nota"><%= u.ultimo_acesso ? 'Último acesso em ' + fmt.dataHora(u.ultimo_acesso) + '.' : (u.tem_senha ? 'Ainda não entrou no sistema.' : 'Gere uma senha temporária para a pessoa conseguir entrar.') %></p>
+        <% if (u.pediu_senha && !senhaGerada) { %><div class="aviso aviso-aviso">Pediu senha nova em <%= fmt.dataHora(u.pediu_senha) %>.</div><% } %>
+        <button class="botao" name="acao" value="senha" data-confirmar="Gerar uma senha temporária nova para <%= u.login %>? A senha atual deixa de valer."><%= u.tem_senha ? 'Gerar senha temporária nova' : 'Gerar senha temporária' %></button>
+      <% } else { %>
+        <p class="nota">Ao criar o usuário, o sistema gera uma senha temporária, mostrada uma única vez. No primeiro acesso a pessoa cria a própria senha.</p>
+      <% } %>
+      <label class="marcar"><input type="checkbox" name="ativo" value="1"<%= u.ativo ? ' checked' : '' %>> Usuário ativo
+        <small>Desmarque para bloquear a entrada sem apagar o histórico.</small></label>
+    </aside>
+  </div>
+  <div class="acoes">
+    <% if (u.id) { %><button class="botao primario" name="acao" value="salvar">Salvar usuário</button>
+    <% } else { %><button class="botao primario">Criar usuário e gerar senha temporária</button><% } %>
+    <a class="botao" href="/cadastros/usuarios">Cancelar</a>
+  </div>
+</form>
+<%- include('partials/rodape') %>

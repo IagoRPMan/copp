@@ -1,0 +1,36 @@
+<%- include('partials/topo', { titulo: 'Usuários' }) %>
+<header class="cabeca"><h1>Usuários</h1><a class="botao" href="/cadastros/usuarios/novo">Novo usuário</a></header>
+<p class="nota">O administrador tem poder total. Os demais conferem e aprovam o que imprimiram e o que lançaram; o gerente vê também os prédios dele, e o departamento e o superior definem o que mais cada um enxerga. Para dar acesso, abra o usuário e gere uma senha temporária.</p>
+<% if (pedidos.length) { %>
+<div class="aviso aviso-aviso" role="status">
+  <strong><%= pedidos.length === 1 ? '1 pessoa pediu' : pedidos.length + ' pessoas pediram' %> senha nova:</strong>
+  <% pedidos.forEach((p, i) => { %><%= i ? ', ' : ' ' %><a href="/cadastros/usuarios/<%= p.id %>"><%= p.nome %></a> <small>(<%= fmt.dataHora(p.criado_em) %>)</small><% }) %>.
+  Abra o usuário e gere uma senha temporária.
+</div>
+<% } %>
+<form method="get" class="filtros">
+  <label>Buscar <input type="search" name="q" value="<%= q %>" placeholder="Nome ou login"></label>
+  <label>Departamento
+    <select name="departamento" data-enviar>
+      <option value="">Todos</option>
+      <% departamentos.forEach((d) => { %><option value="<%= d.id %>"<%= d.id === depto ? ' selected' : '' %>><%= d.nome %> (<%= d.usuarios %>)</option><% }) %>
+    </select></label>
+  <button class="botao">Filtrar</button>
+</form>
+<% if (!lista.length) { %>
+  <p class="vazio">Nenhum usuário com estes filtros.</p>
+<% } else { %>
+<div class="rolagem"><table class="tabela" data-ordenar>
+  <thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Departamento</th><th>Responde a</th><th class="d">Condomínios</th><th>Acesso</th><th></th></tr></thead>
+  <tbody>
+  <% lista.forEach((u) => { %>
+    <tr><td><%= u.nome %><% if (u.matricula) { %> <small class="num"><%= u.matricula %></small><% } %><% if (u.email) { %><br><small class="nota"><%= u.email %></small><% } %></td><td class="num"><%= u.login %></td><td><%= fmt.papel(u.papel) %></td>
+      <td><%= u.depto || '—' %></td><td><%= u.superior || '—' %></td><td class="d num"><%= u.condominios %></td>
+      <td><% if (!u.ativo) { %><span class="etiqueta">inativo</span><% } else if (!u.tem_senha) { %><span class="etiqueta alerta">sem senha</span><% } else { %>Liberado<% } %>
+        <% if (u.ativo && u.pediu_senha) { %> <span class="etiqueta alerta">pediu senha nova</span><% } %></td>
+      <td class="d"><a href="/cadastros/usuarios/<%= u.id %>">Editar</a></td></tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<% } %>
+<%- include('partials/rodape') %>

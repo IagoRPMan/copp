@@ -1,0 +1,108 @@
+<% const admin = user.verTudo || responsaveis.length > 0; %>
+<%- include('partials/topo', { titulo: admin ? 'Conferência' : 'Minha carteira' }) %>
+<header class="cabeca">
+  <h1><%= admin ? 'Conferência' : 'Minha carteira' %></h1>
+  <div class="linha">
+    <a class="botao" href="/lancamentos/novo?voltar=<%= encodeURIComponent(voltar) %>">Lançar cópias</a>
+    <a class="botao" href="/lancamentos/novo?conta=1741&voltar=<%= encodeURIComponent(voltar) %>">Lançar condução</a>
+  </div>
+</header>
+
+<% if (!comps.length) { %>
+  <div class="vazio">
+    <p>Nenhum lançamento ainda.</p>
+    <% if (user.podeImportar) { %><p><a class="botao primario" href="/importacoes">Importar do PaperCut</a></p>
+    <% } else { %><p>Eles aparecem aqui assim que o relatório do PaperCut for importado.</p><% } %>
+  </div>
+<% } else { %>
+
+<form method="get" class="filtros">
+  <label>Competência
+    <select name="competencia" data-enviar>
+      <% comps.forEach((c) => { %><option value="<%= c.competencia %>"<%= c.competencia === filtros.competencia ? ' selected' : '' %>><%= fmt.comp(c.competencia) %> (<%= fmt.periodo(c.de, c.ate) %>)</option><% }) %>
+    </select></label>
+  <label>Situação
+    <select name="status" data-enviar>
+      <% [['ativos','Pendentes e liberados'],['pendente','Só pendentes'],['liberado','Só liberados'],['cancelado','Cancelados']].forEach(([v, t]) => { %>
+        <option value="<%= v %>"<%= v === filtros.status ? ' selected' : '' %>><%= t %></option><% }) %>
+    </select></label>
+  <label>Conta
+    <select name="conta" data-enviar>
+      <option value="">Todas</option>
+      <option value="1732"<%= filtros.conta === '1732' ? ' selected' : '' %>>Cópias</option>
+      <option value="1741"<%= filtros.conta === '1741' ? ' selected' : '' %>>Condução</option>
+    </select></label>
+  <label>Condomínio
+    <select name="condominio" data-enviar>
+      <option value="">Todos</option>
+      <% condominios.forEach((c) => { %><option value="<%= c.id %>"<%= c.id === filtros.condominio ? ' selected' : '' %>><%= c.codigo %> · <%= c.nome %></option><% }) %>
+    </select></label>
+  <% if (admin) { %>
+  <label>Responsável
+    <select name="responsavel" data-enviar>
+      <option value="">Todos</option>
+      <% responsaveis.forEach((u) => { %><option value="<%= u.id %>"<%= u.id === filtros.responsavel ? ' selected' : '' %>><%= u.nome %></option><% }) %>
+    </select></label>
+  <% } %>
+  <label>Buscar <input type="search" name="q" value="<%= filtros.q %>" placeholder="Descrição ou condomínio"></label>
+  <label class="marcar"><input type="checkbox" name="alerta" value="1"<%= filtros.alerta ? ' checked' : '' %> data-enviar> Só com alerta</label>
+  <button class="botao">Filtrar</button>
+</form>
+
+<section class="resumo">
+  <div><span class="rotulo"><%= fmt.comp(filtros.competencia) %></span>
+    <span class="carimbo <%= compLiberada ? 'liberado' : 'pendente' %>"><%= compLiberada ? 'Liberada para a Contabilidade' : 'Em conferência' %></span></div>
+  <div><span class="rotulo">Liberados nesta lista</span><strong class="num"><%= fmt.num(resumo.liberados) %> <small>de <%= fmt.num(resumo.liberados + resumo.pendentes) %></small></strong>
+    <%- include('partials/tira', { feitos: resumo.liberados, total: resumo.liberados + resumo.pendentes }) %></div>
+  <div><span class="rotulo">Valor</span><strong class="num"><%= fmt.brl(resumo.valor) %></strong>
+    <% if (resumo.alertas) { %><small class="texto-alerta"><%= resumo.alertas %> pendente(s) com alerta</small><% } %></div>
+</section>
+
+<% if (cortado) { %><div class="aviso aviso-aviso">A lista mostra os primeiros <%= fmt.num(limite) %> lançamentos. Use os filtros para ver o restante.</div><% } %>
+
+<% if (!grupos.length) { %>
+  <p class="vazio">Nenhum lançamento com estes filtros.</p>
+<% } else { %>
+<datalist id="descricoes"><% descricoes.forEach((d) => { %><option value="<%= d.texto %>"><% }) %></datalist>
+<form method="post" action="/lancamentos/lote" data-lote>
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="voltar" value="<%= voltar %>">
+  <div class="barra-lote">
+    <label class="marcar"><input type="checkbox" data-marcar-todos> Marcar todos os pendentes</label>
+    <button class="botao" name="acao" value="salvar">Salvar alterações</button>
+    <button class="botao primario" name="acao" value="liberar" data-botao-lote>Salvar e liberar marcados</button>
+    <span class="nota" data-contagem aria-live="polite"></span>
+    <span class="nota">Descrição e quantidade podem ser corrigidas aqui mesmo. Para trocar condomínio ou item, abra o lançamento.</span>
+  </div>
+  <div class="rolagem"><table class="tabela conferencia" data-ordenar>
+    <thead><tr><th class="estreita" data-sem-ordem><span class="so-leitor">Marcar</span></th><th>Nº</th><th>Data</th><th>Item</th><th>Descrição</th><th>Nome arquivo</th><th class="d">Qtde</th><th class="d">Valor</th><% if (admin) { %><th>Responsável</th><% } %><th>Situação</th><th></th></tr></thead>
+    <% grupos.forEach((g) => { %>
+    <tbody>
+      <tr class="grupo"><th colspan="<%= admin ? 7 : 7 %>" scope="rowgroup"><span class="cod"><%= g.codigo %></span> <%= g.nome %></th>
+        <th class="d num" data-total-grupo="<%= g.valor %>"><%= fmt.brl(g.valor) %></th><th colspan="<%= admin ? 3 : 2 %>"><% if (g.pendentes) { %><span class="nota"><%= g.pendentes %> pendente(s)</span><% } %></th></tr>
+      <% g.linhas.forEach((l) => { %>
+      <tr class="<%= l.status %>">
+        <td class="estreita"><% if (l.status === 'pendente') { %><input type="checkbox" name="ids" value="<%= l.id %>" aria-label="Marcar lançamento <%= l.id %>"><% } %></td>
+        <td class="num"><%= l.id %></td>
+        <td class="num"><%= fmt.data(l.data) %></td>
+        <td><%= l.item_desc %><% if (l.conta === '1741') { %><div class="nota"><%= l.func_nome || '' %><%= l.hora_inicio ? ' · ' + l.hora_inicio + (l.hora_fim ? '–' + l.hora_fim : '') : '' %></div><% } %></td>
+        <td><% if (l.status === 'pendente') { %><input name="d_<%= l.id %>" value="<%= l.descricao %>" maxlength="300" list="descricoes" data-caixa="alta" aria-label="Descrição do lançamento <%= l.id %>" required><% } else { %><%= l.descricao %><% } %><% if (l.origem === 'manual') { %> <span class="etiqueta">manual</span><% } %>
+          <% if (l.alerta && l.status === 'pendente') { %><div class="texto-alerta"><%= l.alerta %></div><% } %>
+          <% if (l.status === 'cancelado' && l.cancelado_motivo) { %><div class="nota">Motivo: <%= l.cancelado_motivo %></div><% } %></td>
+        <td class="arquivos"<% if (l.arquivos && l.arquivos.length > 1) { %> title="<%= l.arquivos.join('\n') %>"<% } %>><% if (!l.arquivos || !l.arquivos.length) { %><span class="nota">—</span><% } else { %>
+          <% l.arquivos.slice(0, 2).forEach((a) => { %><span class="arquivo"><%= a %></span><% }) %><% if (l.arquivos.length > 2) { %><span class="nota">+ <%= l.arquivos.length - 2 %> arquivo(s)</span><% } %>
+        <% } %></td>
+        <td class="d num"><% if (l.status === 'pendente') { %><input name="q_<%= l.id %>" class="qtd num" value="<%= l.quantidade %>" data-preco="<%= l.preco_centavos %>" inputmode="numeric" pattern="[0-9]{1,7}" aria-label="Quantidade do lançamento <%= l.id %>" required><% } else { %><%= fmt.num(l.quantidade) %><% } %></td>
+        <td class="d num" data-valor="<%= l.status === 'cancelado' ? 0 : l.valor_centavos %>"><%= fmt.brl(l.valor_centavos) %></td>
+        <% if (admin) { %><td><%= l.resp_nome || '—' %></td><% } %>
+        <td><span class="carimbo <%= l.status %>"><%= l.status %></span></td>
+        <td class="d"><a href="/lancamentos/<%= l.id %>?voltar=<%= encodeURIComponent(voltar) %>"><%= l.status === 'pendente' ? 'Detalhes' : 'Abrir' %></a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+    <% }) %>
+  </table></div>
+</form>
+<% } %>
+<% } %>
+<%- include('partials/rodape') %>

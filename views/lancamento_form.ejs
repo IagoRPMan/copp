@@ -1,0 +1,122 @@
+<% const conducao = l.conta === '1741'; const admin = user.verTudo; const novo = !l.id; const travado = l.status !== 'pendente'; %>
+<%- include('partials/topo', { titulo: novo ? (conducao ? 'Lançar condução' : 'Lançar cópias') : 'Lançamento ' + l.id }) %>
+<header class="cabeca">
+  <h1><%= novo ? (conducao ? 'Lançar condução' : 'Lançar cópias') : 'Lançamento ' + l.id %>
+    <% if (!novo) { %><span class="carimbo <%= l.status %>"><%= l.status %></span><% } %></h1>
+  <a class="botao" href="<%= voltar %>">Voltar à lista</a>
+</header>
+
+<% if (erros.length) { %><div class="aviso aviso-erro" role="alert"><% erros.forEach((e) => { %><div><%= e %></div><% }) %></div><% } %>
+<% if (l.alerta && !travado) { %><div class="aviso aviso-aviso"><strong>Confira o condomínio.</strong> <%= l.alerta %></div><% } %>
+<% if (l.status === 'cancelado') { %><div class="aviso aviso-aviso">Cancelado. Motivo: <%= l.cancelado_motivo %></div><% } %>
+
+<form method="post" action="/lancamentos/<%= novo ? 'novo' : l.id %>" class="ficha">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="voltar" value="<%= voltar %>">
+  <input type="hidden" name="conta" value="<%= l.conta || '1732' %>">
+  <fieldset<%= travado ? ' disabled' : '' %>>
+    <label class="largo">Condomínio
+      <select name="condominio_id" required>
+        <option value="">Escolha…</option>
+        <% condominios.forEach((c) => { %><option value="<%= c.id %>"<%= c.id === l.condominio_id ? ' selected' : '' %>><%= c.codigo %> · <%= c.nome %></option><% }) %>
+      </select></label>
+    <label class="duplo"><%= conducao ? 'Trajeto' : 'Item' %>
+      <select name="item_id" required>
+        <option value="">Escolha…</option>
+        <% itens.forEach((i) => { %><option value="<%= i.id %>"<%= i.id === l.item_id ? ' selected' : '' %>><%= i.codigo %> · <%= i.descricao %><%= i.valor_livre ? ' (informe o valor)' : ' (' + fmt.brl(i.preco_centavos) + ')' %></option><% }) %>
+      </select></label>
+    <label>Quantidade <input name="quantidade" inputmode="numeric" pattern="[0-9]{1,7}" value="<%= l.quantidade %>" required></label>
+    <label>Data <input type="date" name="data" value="<%= l.data %>" required></label>
+    <% if (conducao) { %>
+    <label>Valor (R$) <input name="valor" inputmode="decimal" value="<%= l.valor !== undefined ? l.valor : (l.valor_livre ? fmt.dec(l.preco_centavos) : '') %>" maxlength="12" placeholder="0,00"><small>Só para o trajeto "Valor específico". Os outros têm preço de tabela.</small></label>
+    <label>Funcionário
+      <select name="funcionario_id" required>
+        <% funcionarios.forEach((u) => { %><option value="<%= u.id %>"<%= u.id === l.funcionario_id ? ' selected' : '' %>><%= u.nome %></option><% }) %>
+      </select><small>Quem fez o deslocamento.</small></label>
+    <label>Hora de saída <input type="time" name="hora_inicio" value="<%= l.hora_inicio || '' %>"></label>
+    <label>Hora de retorno <input type="time" name="hora_fim" value="<%= l.hora_fim || '' %>"></label>
+    <% } %>
+    <label class="largo">Descrição da despesa
+      <input name="descricao" value="<%= l.descricao %>" maxlength="300" list="descricoes" data-caixa="alta" required>
+      <datalist id="descricoes"><% descricoes.forEach((d) => { %><option value="<%= d.texto %>"><% }) %></datalist>
+      <small>É o texto que aparece no relatório da Contabilidade. <%= conducao ? 'Ex.: Ao condomínio entregar documentos.' : 'Ex.: Material de assembleia, Balancete ref. out/2026.' %></small></label>
+    <% if (admin) { %>
+    <label class="largo">Responsável pela conferência
+      <select name="responsavel_id">
+        <option value=""><%= l.id ? 'Manter como está' : 'Quem está lançando (você)' %></option>
+        <% responsaveis.forEach((u) => { %><option value="<%= u.id %>"<%= u.id === l.responsavel_id ? ' selected' : '' %>><%= u.nome %></option><% }) %>
+      </select>
+      <small>Quem confere e libera. O gerente do condomínio também enxerga e pode aprovar.</small></label>
+    <% } %>
+  </fieldset>
+  <% if (!novo) { %><p class="nota">Valor atual: <strong class="num"><%= fmt.num(l.quantidade) %> × <%= fmt.brl(l.preco_centavos) %> = <%= fmt.brl(l.valor_centavos) %></strong>. O valor é recalculado ao salvar.</p><% } %>
+  <% if (!travado) { %>
+  <div class="acoes">
+    <% if (novo) { %><button class="botao primario">Criar lançamento</button>
+    <% } else { %>
+      <% if (podeLiberar) { %><button class="botao primario" name="acao" value="liberar">Salvar e liberar</button>
+      <button class="botao" name="acao" value="salvar">Salvar sem liberar</button>
+      <% } else { %><button class="botao primario" name="acao" value="salvar">Salvar alterações</button>
+      <span class="nota">Está na carteira de <%= l.resp_nome || 'ninguém' %>. Quem imprimiu, o gerente do prédio e os superiores podem aprovar.</span><% } %>
+    <% } %>
+  </div>
+  <% } %>
+</form>
+
+<% if (!novo && travado && podeLiberar) { %>
+<form method="post" action="/lancamentos/<%= l.id %>/reabrir" class="acoes">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <button class="botao">Reabrir para conferência</button>
+  <span class="nota">Reabrir devolve o lançamento para pendente e libera a edição.</span>
+</form>
+<% } %>
+
+<% if (!novo && !travado) { %>
+<details class="perigo">
+  <summary>Cancelar este lançamento</summary>
+  <form method="post" action="/lancamentos/<%= l.id %>/cancelar" class="pilha estreito">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="voltar" value="<%= voltar %>">
+    <label>Motivo <input name="motivo" maxlength="200" required><small>Lançamento cancelado não vai para a Contabilidade. Ele pode ser reaberto depois.</small></label>
+    <button class="botao perigoso">Cancelar lançamento</button>
+  </form>
+</details>
+<% } %>
+
+<% if (trabalhos.length) { %>
+<h2>Trabalhos do PaperCut que formam este lançamento</h2>
+<% const divide = !travado && trabalhos.length > 0; %>
+<% if (divide) { %><form method="post" action="/lancamentos/<%= l.id %>/mover">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="voltar" value="<%= voltar %>"><% } %>
+<div class="rolagem"><table class="tabela">
+  <thead><tr><% if (divide) { %><th class="estreita"><span class="so-leitor">Marcar</span></th><% } %><th>Data e hora</th><th>Usuário</th><th>Documento</th><th>Impressora</th><th>Comentário</th><th class="d">Páginas</th><th class="d">Neste lançamento</th></tr></thead>
+  <tbody>
+  <% trabalhos.forEach((t) => { %>
+    <tr><% if (divide) { %><td class="estreita"><input type="checkbox" name="trabalhos" value="<%= t.id %>" aria-label="Marcar trabalho de <%= fmt.dataHora(t.data_hora) %>"></td><% } %><td class="num"><%= fmt.dataHora(t.data_hora) %></td><td><%= t.pc_nome || t.pc_usuario %></td><td class="quebra"><%= t.documento %></td><td><%= t.impressora %></td><td><%= t.comentario %></td>
+      <td class="d num"><%= t.paginas %><% if (t.coloridas) { %> <small>(<%= t.coloridas %> cor)</small><% } %><% if (t.duplex) { %> <small>(<%= t.duplex %> duplex)</small><% } %></td>
+      <td class="d num"><%= t.qtd %></td></tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<p class="nota">A conta cobrada no PaperCut foi <strong><%= trabalhos[0].conta %></strong>.</p>
+<% if (divide) { %>
+  <div class="mover">
+    <label>Algum trabalho foi cobrado da conta errada? Marque-o acima e escolha o condomínio certo
+      <select name="condominio_id" required>
+        <option value="">Escolha o condomínio de destino…</option>
+        <% condominios.filter((c) => c.id !== l.condominio_id).forEach((c) => { %><option value="<%= c.id %>"><%= c.codigo %> · <%= c.nome %></option><% }) %>
+      </select></label>
+    <button class="botao">Mover trabalhos marcados</button>
+  </div>
+</form>
+<% } %>
+<% } %>
+
+<% if (historico.length) { %>
+<h2>Histórico</h2>
+<ul class="historico">
+  <% historico.forEach((h) => { %><li><span class="num"><%= fmt.dataHora(h.criado_em) %></span> <strong><%= h.usuario_nome || 'Sistema' %></strong> <%= h.acao %><% if (h.detalhe) { %>: <%= h.detalhe %><% } %></li><% }) %>
+</ul>
+<% } %>
+<%- include('partials/rodape') %>

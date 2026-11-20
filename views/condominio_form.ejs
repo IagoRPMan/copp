@@ -1,0 +1,24 @@
+<%- include('partials/topo', { titulo: c.id ? 'Editar condomínio' : 'Novo condomínio' }) %>
+<header class="cabeca"><h1><%= c.id ? 'Editar condomínio' : 'Novo condomínio' %></h1><a class="botao" href="/cadastros/condominios">Voltar à lista</a></header>
+<% if (erro) { %><div class="aviso aviso-erro" role="alert"><%= erro %></div><% } %>
+<form method="post" action="/cadastros/condominios/<%= c.id || 'novo' %>" class="ficha">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <fieldset>
+    <label>Código <input name="codigo" value="<%= c.codigo %>" maxlength="40" required><small>O código usado pela Contabilidade. Sai no relatório.</small></label>
+    <label class="triplo">Nome <input name="nome" value="<%= c.nome %>" maxlength="120" required></label>
+    <label class="duplo">Conta compartilhada no PaperCut
+      <input name="conta_papercut" value="<%= c.conta_papercut || '' %>" maxlength="160">
+      <small>Exatamente como aparece no export, por exemplo "076 - B. B. Boulogne". É por ela que a importação encontra o condomínio.</small></label>
+    <label class="duplo">Gerente do condomínio (carteira)
+      <select name="responsavel_id">
+        <option value="">Sem gerente</option>
+        <% responsaveis.forEach((u) => { %><option value="<%= u.id %>"<%= u.id === c.responsavel_id ? ' selected' : '' %>><%= u.nome %> (<%= u.login %>)</option><% }) %>
+      </select>
+      <small>Cada lançamento vai para a carteira de quem imprimiu. O gerente também enxerga e pode aprovar tudo o que é deste condomínio, e recebe os trabalhos sem usuário identificado.</small></label>
+    <label class="marcar duplo"><input type="checkbox" name="gera_lancamento" value="1"<%= c.gera_lancamento ? ' checked' : '' %>> Gerar lançamentos para esta conta
+      <small>Desmarque para contas internas da administradora, que não são cobradas de nenhum condomínio.</small></label>
+    <label class="marcar duplo"><input type="checkbox" name="ativo" value="1"<%= c.ativo ? ' checked' : '' %>> Ativo</label>
+  </fieldset>
+  <div class="acoes"><button class="botao primario">Salvar condomínio</button></div>
+</form>
+<%- include('partials/rodape') %>

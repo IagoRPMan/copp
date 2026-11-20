@@ -1,0 +1,54 @@
+<%- include('partials/topo', { titulo: 'Minha conta' }) %>
+<header class="cabeca"><h1>Minha conta</h1></header>
+<% const primeiro = user.trocarSenha && user.completarPerfil; %>
+<% if (primeiro) { %><div class="aviso aviso-aviso">Bem-vindo ao COPP. Antes de começar, informe seu nome e e-mail e crie uma senha sua.</div>
+<% } else if (user.trocarSenha) { %><div class="aviso aviso-aviso">Sua senha é temporária. Crie uma senha sua para continuar.</div>
+<% } else if (user.completarPerfil) { %><div class="aviso aviso-aviso">Complete seu nome e e-mail para continuar.</div><% } %>
+<div class="duas-colunas">
+  <% if (!primeiro) { %>
+  <section class="cartao">
+    <h2>Seus dados</h2>
+    <% if (erroDados) { %><div class="aviso aviso-erro" role="alert"><%= erroDados %></div><% } %>
+    <form method="post" action="/conta/dados" class="pilha">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label>Nome completo <input name="nome" value="<%= dados.nome %>" maxlength="120" required autocomplete="name" data-caixa="alta"></label>
+      <label>E-mail <input name="email" type="email" value="<%= dados.email %>" maxlength="160" required autocomplete="email" data-caixa="baixa"></label>
+      <div><button class="botao<%= user.completarPerfil ? ' primario' : '' %>">Salvar dados</button></div>
+    </form>
+  </section>
+  <% } %>
+
+  <% if (primeiro || user.trocarSenha || !user.completarPerfil) { %>
+  <section class="cartao">
+    <h2><%= primeiro ? 'Seus dados e sua senha' : 'Trocar senha' %></h2>
+    <% if (erro) { %><div class="aviso aviso-erro" role="alert"><%= erro %></div><% } %>
+    <form method="post" action="/conta" class="pilha">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <% if (primeiro) { %>
+      <label>Nome completo <input name="nome" value="<%= dados.nome %>" maxlength="120" required autocomplete="name" data-caixa="alta"></label>
+      <label>E-mail <input name="email" type="email" value="<%= dados.email %>" maxlength="160" required autocomplete="email" data-caixa="baixa"></label>
+      <% } %>
+      <label>Senha atual <input name="atual" type="password" autocomplete="current-password" required><% if (user.trocarSenha) { %><small>A senha temporária que você recebeu.</small><% } %></label>
+      <label>Senha nova <input name="nova" type="password" autocomplete="new-password" minlength="8" required><small>Pelo menos 8 caracteres.</small></label>
+      <label>Repita a senha nova <input name="repetir" type="password" autocomplete="new-password" minlength="8" required></label>
+      <div><button class="botao primario"><%= primeiro ? 'Salvar e entrar' : 'Salvar senha nova' %></button></div>
+    </form>
+  </section>
+  <% } %>
+
+  <% if (!user.trocarSenha && !user.completarPerfil) { %>
+  <section class="cartao">
+    <h2>Código de recuperação</h2>
+    <p class="nota"><%= user.semCodigo
+      ? 'Você ainda não tem código. Com ele, se esquecer a senha, você mesmo cria uma nova em "Esqueci minha senha", sem depender do administrador.'
+      : 'Você já tem um código. Gere outro se perdeu o seu ou se alguém pode tê-lo visto: o anterior deixa de valer na hora.' %></p>
+    <% if (erroCodigo) { %><div class="aviso aviso-erro" role="alert"><%= erroCodigo %></div><% } %>
+    <form method="post" action="/conta/codigo" class="pilha">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label>Sua senha <input name="senha" type="password" autocomplete="current-password" required></label>
+      <div><button class="botao<%= user.semCodigo ? ' primario' : '' %>"><%= user.semCodigo ? 'Gerar meu código' : 'Gerar código novo' %></button></div>
+    </form>
+  </section>
+  <% } %>
+</div>
+<%- include('partials/rodape') %>

@@ -1,0 +1,9 @@
+<header class="folha-cabeca">
+  <img class="folha-logo" src="/logo-propstarter.jpg" alt="Prop Starter Condomínios">
+  <div class="folha-ident">
+    <p class="folha-empresa"><%= empresa %></p>
+    <p class="folha-titulo"><%= conta.tituloFolha %><% if (emConferencia.length) { %> <span class="folha-previa">PRÉVIA</span><% } %></p>
+    <p class="folha-periodo"><% if (!intervalo && competencia) { %><b><%= fmt.mesAno(competencia.competencia) %></b> · período de <% } else { %>Período de <% } %><%= fmt.data(de) %> a <%= fmt.data(ate) %></p>
+  </div>
+  <p class="folha-pag">Página<b><%= pagina %> de <%= totalPaginas %></b></p>
+</header>

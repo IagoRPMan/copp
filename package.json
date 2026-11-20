@@ -1,0 +1,22 @@
+{
+  "name": "copp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lançamento de cópias e impressões a partir do PaperCut",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "backup": "node scripts/backup.js",
+    "carga": "node scripts/carga-inicial.js"
+  },
+  "dependencies": {
+    "csv-parse": "^7.0.3",
+    "ejs": "^7.0.2",
+    "express": "^4.22.3",
+    "multer": "^2.5.0"
+  }
+}
