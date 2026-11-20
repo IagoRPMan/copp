@@ -20,12 +20,14 @@
   <% if (user) {
        const em = (p) => caminho.startsWith(p) ? ' class="ativo" aria-current="page"' : '';
        const icone = (n) => `<svg class="icone" aria-hidden="true"><use href="#i-${n}"/></svg>`;
-       const confere = user.verTudo || user.conferir; %>
+       const confere = user.verTudo || user.conferir;
+       const lancando = caminho.startsWith('/lancar') || caminho === '/lancamentos/novo'; %>
   <nav aria-label="Principal">
+    <a class="nav-lancar<%= lancando ? ' ativo' : '' %>" href="/lancar"<%- lancando ? ' aria-current="page"' : '' %>><%- icone('mais') %>Novo lançamento</a>
     <span class="nav-titulo">Rotina</span>
     <% if (user.verRelatorios) { %><a href="/painel"<%- em('/painel') %>><%- icone('painel') %>Painel do mês</a><% } %>
     <% if (user.podeImportar) { %><a href="/importacoes"<%- em('/importacoes') %>><%- icone('importar') %>Importar do PaperCut</a><% } %>
-    <a href="/lancamentos"<%- em('/lancamentos') %>><%- icone('conferir') %><%= confere ? 'Conferência' : 'Meus lançamentos' %></a>
+    <a href="/lancamentos"<%- lancando ? '' : em('/lancamentos') %>><%- icone('conferir') %><%= confere ? 'Conferência' : 'Meus lançamentos' %></a>
     <% if (user.verRelatorios) { %><a href="/relatorios"<%- em('/relatorios') %>><%- icone('relatorio') %>Relatórios</a><% } %>
     <% if (user.admin) { %>
       <span class="nav-titulo">Cadastros</span>

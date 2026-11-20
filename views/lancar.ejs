@@ -1,0 +1,56 @@
+<%- include('partials/topo', { titulo: 'Novo lançamento' }) %>
+<header class="cabeca">
+  <div>
+    <h1>Novo lançamento</h1>
+    <p class="subtitulo">Registre despesas feitas para um condomínio que não passaram pelo PaperCut. A Contabilidade confere e libera; enquanto estiver pendente, você ainda pode corrigir.</p>
+  </div>
+</header>
+
+<nav class="escolhas" aria-label="O que você quer lançar">
+  <a class="escolha" href="/lancamentos/novo?voltar=/lancar">
+    <span class="escolha-icone" aria-hidden="true"><svg><use href="#i-copia"/></svg></span>
+    <span class="escolha-texto">
+      <strong>Cópias e impressões</strong>
+      <span>Cópias feitas fora do PaperCut: na copiadora sem login, em outra unidade, em gráfica.</span>
+      <small>Ex.: material de assembleia, balancete, circular aos condôminos.</small>
+    </span>
+    <span class="escolha-ir">Lançar cópias <span aria-hidden="true">→</span></span>
+  </a>
+  <a class="escolha" href="/lancamentos/novo?conta=1741&voltar=/lancar">
+    <span class="escolha-icone" aria-hidden="true"><svg><use href="#i-conducao"/></svg></span>
+    <span class="escolha-texto">
+      <strong>Condução</strong>
+      <span>Deslocamento a serviço do condomínio, pelo trajeto de tabela ou com valor específico.</span>
+      <small>Ex.: ao condomínio entregar / retirar malote.</small>
+    </span>
+    <span class="escolha-ir">Lançar condução <span aria-hidden="true">→</span></span>
+  </a>
+</nav>
+
+<div class="cabeca-secao">
+  <h2>Seus lançamentos</h2>
+  <% if (pendentes || liberados) { %><p class="nota"><%= pendentes %> aguardando conferência · <%= liberados %> liberado<%= liberados === 1 ? '' : 's' %></p><% } %>
+</div>
+<% if (!meus.length) { %>
+  <div class="vazio"><p>Você ainda não lançou nada à mão. O que você lançar aparece aqui, com a situação de cada um.</p></div>
+<% } else { %>
+<div class="rolagem"><table class="tabela">
+  <thead><tr><th>Nº</th><th>Data</th><th>Tipo</th><th>Condomínio</th><th>Descrição</th><th class="d">Qtde</th><th class="d">Valor</th><th>Situação</th><th><span class="so-leitor">Abrir</span></th></tr></thead>
+  <tbody>
+  <% meus.forEach((l) => { %>
+    <tr>
+      <td class="num"><%= l.id %></td>
+      <td class="num nowrap"><%= fmt.data(l.data) %></td>
+      <td class="nowrap"><%= l.conta === '1741' ? 'Condução' : 'Cópias' %><span class="quem-imprimiu"><%= l.item_desc %></span></td>
+      <td><span class="cod"><%= l.cond_codigo %></span><%= l.cond_nome %></td>
+      <td><%= l.descricao %><% if (l.status === 'cancelado' && l.cancelado_motivo) { %><span class="quem-imprimiu">Motivo: <%= l.cancelado_motivo %></span><% } %></td>
+      <td class="d num"><%= fmt.num(l.quantidade) %></td>
+      <td class="d num nowrap"><%= fmt.brl(l.valor_centavos) %></td>
+      <td><span class="carimbo <%= l.status %>"><%= l.status %></span></td>
+      <td class="d nowrap"><a href="/lancamentos/<%= l.id %>?voltar=/lancar"><%= l.status === 'pendente' ? 'Corrigir' : 'Abrir' %></a></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table></div>
+<% } %>
+<%- include('partials/rodape') %>

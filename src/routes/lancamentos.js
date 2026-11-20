@@ -145,8 +145,9 @@ r.post('/lote', (req, res) => {
   res.redirect(voltarSeguro(req.body.voltar));
 });
 
+// Só volta para páginas do próprio sistema: a lista de lançamentos ou a área de novo lançamento.
 function voltarSeguro(v) {
-  return typeof v === 'string' && /^\/lancamentos(\?|$)/.test(v) ? v : '/lancamentos';
+  return typeof v === 'string' && /^\/(lancamentos|lancar)(\?|$)/.test(v) ? v : '/lancamentos';
 }
 
 // ---- Formulário
@@ -154,13 +155,11 @@ function opcoes(req, l) {
   const conta = (l && l.conta) || '1732';
   return { condominios: condominiosAtivos(), descricoes: descricoesPadrao(),
     itens: itensTodos().filter((i) => i.conta === conta && (i.ativo || (l && i.id === l.item_id))),
-    funcionarios: conta === '1741' ? usuariosAtivos() : [],
     podeLiberar: l && l.id ? podeLiberar(req) : false,
     podeEditar: !l || !l.id || podeMexer(req, l),
     podeMover: podeLiberar(req) };
 }
 
-const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 function centavosDe(texto) {
   const m = /^\s*(\d{1,6})(?:[.,](\d{1,2}))?\s*$/.exec(String(texto || ''));
   return m ? parseInt(m[1], 10) * 100 + parseInt((m[2] || '0').padEnd(2, '0'), 10) : null;
@@ -176,9 +175,6 @@ function lerFormulario(req, atual) {
     descricao: descricaoPadrao(b.descricao),
     quantidade: /^\d{1,7}$/.test(String(b.quantidade || '').trim()) ? parseInt(b.quantidade, 10) : 0,
     responsavel_id: undefined,
-    funcionario_id: parseInt(b.funcionario_id, 10) || null,
-    hora_inicio: HORA.test(b.hora_inicio || '') ? b.hora_inicio : null,
-    hora_fim: HORA.test(b.hora_fim || '') ? b.hora_fim : null,
     valor: String(b.valor || '').trim().slice(0, 12),
   };
   const erros = [];
@@ -194,8 +190,6 @@ function lerFormulario(req, atual) {
     preco = centavosDe(dados.valor);
     if (!preco) erros.push('Informe o valor da condução, no formato 12,50.');
   }
-  if (dados.funcionario_id && !get('SELECT 1 AS x FROM usuarios WHERE id = ? AND ativo = 1', dados.funcionario_id)) erros.push('Escolha o funcionário.');
-  if (dados.hora_inicio && dados.hora_fim && dados.hora_fim < dados.hora_inicio) erros.push('A hora final não pode ser antes da inicial.');
   return { dados, erros, item, preco };
 }
 
@@ -204,7 +198,7 @@ const contaPedida = (v) => (String(v) === '1741' ? '1741' : '1732');
 r.get('/novo', (req, res) => {
   const hoje = new Date();
   const l = { id: 0, status: 'pendente', conta: contaPedida(req.query.conta), condominio_id: 0, item_id: 0, descricao: '', quantidade: '', responsavel_id: null,
-    funcionario_id: req.user.id, hora_inicio: '', hora_fim: '', valor: '',
+    valor: '',
     data: `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}` };
   if (l.conta === '1741') l.quantidade = 1;
   res.render('lancamento_form', { l, erros: [], trabalhos: [], historico: [], voltar: voltarSeguro(req.query.voltar), ...opcoes(req, l) });
@@ -222,11 +216,18 @@ r.post('/novo', (req, res) => {
   // Fica registrado em nome de quem lançou; a conferência e a liberação são da Contabilidade.
   const resp = req.user.id;
   const competencia = competenciaDe(dados.data);
-  const ins = run(`INSERT INTO lancamentos (competencia, condominio_id, item_id, data, descricao, quantidade, preco_centavos, valor_centavos, responsavel_id, origem, criado_por, funcionario_id, hora_inicio, hora_fim)
-                   VALUES (?,?,?,?,?,?,?,?,?,'manual',?,?,?,?)`,
+  // Funcionário é sempre quem lançou (o relatório por funcionário usa esse campo).
+  const ins = run(`INSERT INTO lancamentos (competencia, condominio_id, item_id, data, descricao, quantidade, preco_centavos, valor_centavos, responsavel_id, origem, criado_por, funcionario_id)
+                   VALUES (?,?,?,?,?,?,?,?,?,'manual',?,?)`,
     competencia, dados.condominio_id, dados.item_id, dados.data, dados.descricao, dados.quantidade, preco, dados.quantidade * preco, resp, req.user.id,
-    dados.funcionario_id || req.user.id, dados.hora_inicio, dados.hora_fim);
+    req.user.id);
   auditar(req.user.id, conta === '1741' ? 'lançou condução' : 'criou manualmente', Number(ins.lastInsertRowid), null);
+  const id = Number(ins.lastInsertRowid);
+  // Quem lançou pela área "Novo lançamento" volta para ela, pronto para lançar o próximo.
+  if (voltar.startsWith('/lancar')) {
+    flash(req, 'ok', `Lançamento nº ${id} registrado. Ele aparece abaixo e vai para a conferência da Contabilidade.`);
+    return res.redirect('/lancar');
+  }
   flash(req, 'ok', podeLiberar(req) ? 'Lançamento criado como pendente. Confira e libere quando estiver certo.' : 'Lançamento criado. Ele vai para a conferência da Contabilidade; enquanto estiver pendente, você ainda pode corrigi-lo.');
   res.redirect('/lancamentos?competencia=' + competencia);
 });
@@ -267,9 +268,6 @@ r.post('/:id', (req, res) => {
     if (valorInformado !== preco) mudancas.push(`valor: ${preco / 100} → ${valorInformado / 100}`);
     preco = valorInformado;
   }
-  const conducao = l.conta === '1741';
-  if (conducao && (dados.funcionario_id || null) !== (l.funcionario_id || null)) mudancas.push('funcionário alterado');
-  if (conducao && ((dados.hora_inicio || '') !== (l.hora_inicio || '') || (dados.hora_fim || '') !== (l.hora_fim || ''))) mudancas.push(`horário: ${l.hora_inicio || '—'}–${l.hora_fim || '—'} → ${dados.hora_inicio || '—'}–${dados.hora_fim || '—'}`);
   if (dados.quantidade !== l.quantidade) mudancas.push(`quantidade: ${l.quantidade} → ${dados.quantidade}`);
   if (dados.descricao !== l.descricao) mudancas.push(`descrição: "${l.descricao}" → "${dados.descricao}"`);
   if (dados.data !== l.data) mudancas.push(`data: ${l.data} → ${dados.data}`);
@@ -281,7 +279,6 @@ r.post('/:id', (req, res) => {
                 responsavel_id = ?, alerta = CASE WHEN ? THEN NULL ELSE alerta END, atualizado_em = datetime('now','localtime') WHERE id = ?`,
       competenciaDe(dados.data), dados.condominio_id, dados.item_id, dados.data, dados.descricao, dados.quantidade, preco, dados.quantidade * preco,
       resp, dados.condominio_id !== l.condominio_id ? 1 : 0, l.id);
-    if (conducao) run('UPDATE lancamentos SET funcionario_id = ?, hora_inicio = ?, hora_fim = ? WHERE id = ?', dados.funcionario_id || l.funcionario_id, dados.hora_inicio, dados.hora_fim, l.id);
     if (mudancas.length) auditar(req.user.id, 'editou', l.id, mudancas.join('; '));
     if (liberar) {
       run("UPDATE lancamentos SET status = 'liberado', liberado_por = ?, liberado_em = datetime('now','localtime') WHERE id = ?", req.user.id, l.id);

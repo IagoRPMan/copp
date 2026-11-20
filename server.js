@@ -141,7 +141,8 @@ app.get('/', (req, res) => {
   if (req.user.verTudo) return res.redirect('/painel');
   // A Contabilidade confere e libera tudo: entra direto na conferência.
   if (req.user.conferir) return res.redirect('/lancamentos');
-  res.redirect('/lancamentos');
+  // Os demais entram onde mais usam: lançar cópias e conduções.
+  res.redirect('/lancar');
 });
 
 // ---- Minha conta
@@ -205,6 +206,7 @@ app.use('/importacoes', auth.exigir('podeImportar'), require('./src/routes/impor
 app.use('/cadastros/carga', auth.exigir('admin'), require('./src/routes/carga'));
 app.use(auth.conferirCsrf);
 app.use('/painel', auth.exigir('verRelatorios'), require('./src/routes/painel'));
+app.use('/lancar', auth.exigir('logado'), require('./src/routes/lancar'));
 app.use('/lancamentos', auth.exigir('logado'), require('./src/routes/lancamentos'));
 app.use('/relatorios', auth.exigir('verRelatorios'), require('./src/routes/relatorios'));
 app.use('/cadastros', auth.exigir('admin'), require('./src/routes/cadastros'));

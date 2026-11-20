@@ -6,7 +6,7 @@
       <% if (!novo) { %><span class="carimbo grande <%= l.status %>"><%= l.status %></span><% } %></h1>
     <p class="subtitulo"><% if (novo) { %><%= conducao ? 'Registre um deslocamento feito a serviço de um condomínio.' : 'Registre cópias que não passaram pelo PaperCut.' %> O lançamento vai para a conferência da Contabilidade.<% } else { %><span class="cod"><%= l.cond_codigo %></span><%= l.cond_nome %> · <%= fmt.mesAno(l.competencia) %><% if (l.resp_nome) { %> · <%= l.origem === 'manual' ? 'lançado' : 'impresso' %> por <%= l.resp_nome %><% } %><% } %></p>
   </div>
-  <a class="botao" href="<%= voltar %>">Voltar à lista</a>
+  <a class="botao" href="<%= voltar %>"><%= voltar.startsWith('/lancar') ? 'Voltar' : 'Voltar à lista' %></a>
 </header>
 
 <% if (erros.length) { %><div class="aviso aviso-erro" role="alert"><% erros.forEach((e) => { %><div><%= e %></div><% }) %></div><% } %>
@@ -33,12 +33,6 @@
     <label>Data <input type="date" name="data" value="<%= l.data %>" required></label>
     <% if (conducao) { %>
     <label>Valor (R$) <input name="valor" inputmode="decimal" value="<%= l.valor !== undefined ? l.valor : (l.valor_livre ? fmt.dec(l.preco_centavos) : '') %>" maxlength="12" placeholder="0,00"><small>Só para o trajeto "Valor específico". Os outros têm preço de tabela.</small></label>
-    <label>Funcionário
-      <select name="funcionario_id" required>
-        <% funcionarios.forEach((u) => { %><option value="<%= u.id %>"<%= u.id === l.funcionario_id ? ' selected' : '' %>><%= u.nome %></option><% }) %>
-      </select><small>Quem fez o deslocamento.</small></label>
-    <label>Hora de saída <input type="time" name="hora_inicio" value="<%= l.hora_inicio || '' %>"></label>
-    <label>Hora de retorno <input type="time" name="hora_fim" value="<%= l.hora_fim || '' %>"></label>
     <% } %>
     <label class="largo">Descrição da despesa
       <input name="descricao" value="<%= l.descricao %>" maxlength="300" list="descricoes" data-caixa="alta" required>

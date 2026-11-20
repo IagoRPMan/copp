@@ -9,10 +9,7 @@
       ? 'Confira descrição e quantidade de cada lançamento e libere o que estiver certo. O mês vai para o relatório quando não restar nenhum pendente.'
       : 'Acompanhe o que você imprimiu ou lançou. A conferência e a liberação são feitas pela Contabilidade; enquanto um lançamento manual seu estiver pendente, você ainda pode corrigi-lo.' %></p>
   </div>
-  <div class="linha">
-    <a class="botao" href="/lancamentos/novo?voltar=<%= encodeURIComponent(voltar) %>"><svg class="icone" aria-hidden="true"><use href="#i-mais"/></svg>Lançar cópias</a>
-    <a class="botao" href="/lancamentos/novo?conta=1741&voltar=<%= encodeURIComponent(voltar) %>"><svg class="icone" aria-hidden="true"><use href="#i-mais"/></svg>Lançar condução</a>
-  </div>
+  <a class="botao" href="/lancar"><svg class="icone" aria-hidden="true"><use href="#i-mais"/></svg>Novo lançamento</a>
 </header>
 
 <% if (!comps.length) { %>
@@ -101,7 +98,7 @@
         <td class="num"><span class="linha-texto"><%= l.id %></span></td>
         <td class="num nowrap"><span class="linha-texto"><%= fmt.data(l.data) %></span></td>
         <td class="col-desc"><% if (l.editavel) { %><input name="d_<%= l.id %>" value="<%= l.descricao %>" maxlength="300" list="descricoes" data-caixa="alta" aria-label="Descrição do lançamento <%= l.id %>" required><% } else { %><span class="linha-texto"><%= l.descricao %></span><% } %>
-          <span class="item-linha"><%= l.item_desc %><% if (l.conta === '1741') { %> · <%= l.func_nome || '' %><%= l.hora_inicio ? ' · ' + l.hora_inicio + (l.hora_fim ? '–' + l.hora_fim : '') : '' %><% } %><% if (l.origem === 'manual') { %> <span class="etiqueta">manual</span><% } %></span>
+          <span class="item-linha"><%= l.item_desc %><% if (l.origem === 'manual') { %> <span class="etiqueta">manual</span><% } %></span>
           <% if (l.alerta && l.status === 'pendente') { %><div class="alerta-linha"><svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg><span><%= l.alerta %></span></div><% } %>
           <% if (l.status === 'cancelado' && l.cancelado_motivo) { %><span class="quem-imprimiu">Motivo: <%= l.cancelado_motivo %></span><% } %></td>
         <td class="arquivos"<% if (l.arquivos && l.arquivos.length > 1) { %> title="<%= l.arquivos.join('\n') %>"<% } %>><% if (!l.arquivos || !l.arquivos.length) { %><span class="nota linha-texto">—</span><% } else { %>
