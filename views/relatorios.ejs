@@ -94,7 +94,7 @@
           <thead><tr><th class="d">Nr. Ord</th><th>Data</th><th>Item</th><th>Descrição</th><th class="d">Qtde</th><th class="d">Unit.</th><th class="d">Valor</th></tr></thead>
           <tbody><% pagina.forEach((l) => { %>
             <tr><td class="d num nr"><%= fmt.num(l.id) %></td><td class="num"><%= fmt.data(l.data) %></td><td><span class="num"><%= fmt.cod4(l.item_codigo) %></span> <%= l.item_rotulo %></td>
-              <td><%= l.descricao %><% if (conducao && l.func_nome) { %> · <%= l.func_nome %><% if (l.hora_inicio) { %> (<%= l.hora_inicio %><%= l.hora_fim ? '–' + l.hora_fim : '' %>)<% } %><% } %></td>
+              <td><%= l.descricao %></td>
               <td class="d num"><%= fmt.num(l.quantidade) %></td><td class="d num"><%= fmt.dec(l.preco_centavos) %></td><td class="d num"><%= fmt.dec(l.valor_centavos) %></td></tr>
           <% }) %></tbody>
           <% if (ultima) { %><tfoot><tr><td colspan="4" class="d">Total das despesas para o condomínio</td><td class="d num"><%= fmt.num(g.quantidade) %></td><td></td><td class="d num"><%= fmt.brl(g.valor) %></td></tr></tfoot><% } %>
