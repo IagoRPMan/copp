@@ -116,6 +116,8 @@ function carregarSessao(req, res, next) {
         completarPerfil: perfilIncompleto(s),
         depto: s.depto || null, funcao: s.funcao || 'comum', admin,
         podeImportar: admin || s.funcao === 'contabilidade',
+        // Toda conferência e liberação de lançamentos é da Contabilidade (e do administrador).
+        conferir: admin || s.funcao === 'contabilidade',
         verRelatorios: admin || s.funcao === 'contabilidade' || s.funcao === 'diretoria',
         verTudo: admin || s.funcao === 'diretoria',
         logado: true,
@@ -165,14 +167,24 @@ function conferirCsrf(req, res, next) {
 }
 
 // Limite simples de tentativas de login, em memória.
+// As entradas vencidas são descartadas a cada falha registrada, para o mapa não crescer sem fim.
+const JANELA_MS = 15 * 60 * 1000;
+const MAX_CHAVES = 10000;
 const tentativas = new Map();
+function descartarVencidas(agora) {
+  for (const [chave, t] of tentativas) if (agora - t.inicio > JANELA_MS) tentativas.delete(chave);
+  // Sob uma enxurrada de logins diferentes, as mais antigas saem primeiro (o Map guarda a ordem de inserção).
+  while (tentativas.size > MAX_CHAVES) tentativas.delete(tentativas.keys().next().value);
+}
 function loginBloqueado(chave) {
   const t = tentativas.get(chave);
-  return !!t && t.n >= 8 && Date.now() - t.inicio < 15 * 60 * 1000;
+  return !!t && t.n >= 8 && Date.now() - t.inicio < JANELA_MS;
 }
 function registrarFalha(chave) {
+  const agora = Date.now();
+  descartarVencidas(agora);
   const t = tentativas.get(chave);
-  if (!t || Date.now() - t.inicio > 15 * 60 * 1000) tentativas.set(chave, { n: 1, inicio: Date.now() });
+  if (!t || agora - t.inicio > JANELA_MS) tentativas.set(chave, { n: 1, inicio: agora });
   else t.n += 1;
 }
 function limparFalhas(chave) { tentativas.delete(chave); }
@@ -180,5 +192,5 @@ function limparFalhas(chave) { tentativas.delete(chave); }
 module.exports = {
   hashSenha, confereSenha, senhaTemporaria, validarSenhaNova, garantirAdmin, novoCodigoRecuperacao, confereCodigo,
   abrirSessao, fecharSessao, encerrarSessoesDe, carregarSessao, flash,
-  exigirLogin, exigir, conferirCsrf, loginBloqueado, registrarFalha, limparFalhas,
+  exigirLogin, exigir, conferirCsrf, loginBloqueado, registrarFalha, limparFalhas, _tentativas: tentativas,
 };

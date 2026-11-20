@@ -150,7 +150,9 @@ function dividirPaginas(t, duplexAtivo) {
  * Um lançamento = condomínio × item × descrição × responsável, dentro da competência.
  */
 function processar(trabalhos, opcoes = {}) {
-  if (opcoes.gravar) return montar(trabalhos, opcoes);
+  // Uma transação só para tudo o que a importação grava, inclusive os períodos de fechamento novos:
+  // se algo falhar no meio, nada fica pela metade.
+  if (opcoes.gravar) return tx(() => montar(trabalhos, opcoes));
   // A prévia pode precisar criar períodos de fechamento novos; nada disso fica gravado.
   db.exec('BEGIN');
   try { return montar(trabalhos, opcoes); } finally { db.exec('ROLLBACK'); }
@@ -259,7 +261,7 @@ function montar(trabalhos, { gravar = false, usuarioId = null, arquivo = '', has
   resumo.criados = grupos.size - resumo.acrescidos;
   if (!gravar || !novos.length) return resumo;
 
-  tx(() => {
+  {
     const imp = run('INSERT INTO importacoes (arquivo, hash, usuario_id, linhas, importados, duplicados, ignorados, lancamentos) VALUES (?,?,?,?,?,?,?,?)',
       arquivo, hash, usuarioId, linhas, novos.length, duplicados, ignorados, grupos.size);
     const importacaoId = Number(imp.lastInsertRowid);
@@ -313,7 +315,7 @@ function montar(trabalhos, { gravar = false, usuarioId = null, arquivo = '', has
     resumo.importacaoId = importacaoId;
     resumo.acrescidos = acrescidos;
     resumo.criados = grupos.size - acrescidos;
-  });
+  }
   return resumo;
 }
 
@@ -331,6 +333,18 @@ function pendenteIgual(g, condId, itemId, respId) {
 }
 
 /**
+ * Quantidade que sobra num lançamento quando parte das páginas sai dele (importação desfeita ou trabalhos movidos).
+ * Sem correção manual, é a soma das páginas que continuam ligadas a ele. Se alguém corrigiu a quantidade,
+ * a correção é mantida e só as páginas que saem são descontadas; se o desconto zerar, volta para a soma das páginas.
+ */
+function quantidadeRestante(quantidade, vinculado, saem) {
+  const restante = vinculado - saem;
+  const editado = quantidade !== vinculado;
+  const qtd = editado ? quantidade - saem : restante;
+  return { quantidade: qtd >= 1 ? qtd : restante, editado, restante };
+}
+
+/**
  * Desfaz uma importação inteira. Só é permitido enquanto nenhum lançamento que ela
  * alimentou tiver sido liberado: o que já foi para a Contabilidade não some.
  */
@@ -339,7 +353,8 @@ function desfazer(importacaoId, usuarioId, { excluir = false } = {}) {
   if (!imp) return { erro: 'Importação não encontrada.' };
   if (imp.desfeita_em && !excluir) return { erro: 'Esta importação já foi desfeita.' };
   const afetados = all(`SELECT l.id, l.status, l.quantidade, l.preco_centavos, SUM(lt.quantidade) AS desta,
-                               (SELECT COUNT(*) FROM lancamento_trabalhos x JOIN trabalhos tx ON tx.id = x.trabalho_id WHERE x.lancamento_id = l.id AND tx.importacao_id <> ?) AS de_outras
+                               (SELECT COUNT(*) FROM lancamento_trabalhos x JOIN trabalhos tx ON tx.id = x.trabalho_id WHERE x.lancamento_id = l.id AND tx.importacao_id <> ?) AS de_outras,
+                               (SELECT SUM(y.quantidade) FROM lancamento_trabalhos y WHERE y.lancamento_id = l.id) AS vinculado
                         FROM lancamentos l JOIN lancamento_trabalhos lt ON lt.lancamento_id = l.id JOIN trabalhos t ON t.id = lt.trabalho_id
                         WHERE t.importacao_id = ? GROUP BY l.id`, importacaoId, importacaoId);
   const liberados = afetados.filter((l) => l.status === 'liberado').length;
@@ -352,9 +367,9 @@ function desfazer(importacaoId, usuarioId, { excluir = false } = {}) {
       run('DELETE FROM lancamento_trabalhos WHERE lancamento_id = ? AND trabalho_id IN (SELECT id FROM trabalhos WHERE importacao_id = ?)', l.id, importacaoId);
       if (!l.de_outras) { run('DELETE FROM lancamentos WHERE id = ?', l.id); removidos++; }
       else {
-        const qtd = Math.max(1, l.quantidade - l.desta);
+        const { quantidade: qtd, editado } = quantidadeRestante(l.quantidade, l.vinculado, l.desta);
         run("UPDATE lancamentos SET quantidade = ?, valor_centavos = ?, atualizado_em = datetime('now','localtime') WHERE id = ?", qtd, qtd * l.preco_centavos, l.id);
-        auditar(usuarioId, 'importação desfeita', l.id, `quantidade: ${l.quantidade} → ${qtd}`);
+        auditar(usuarioId, 'importação desfeita', l.id, `quantidade: ${l.quantidade} → ${qtd}${editado ? ' (a quantidade tinha sido corrigida à mão; a correção foi mantida)' : ''}`);
         reduzidos++;
       }
     }
@@ -373,4 +388,4 @@ function desfazer(importacaoId, usuarioId, { excluir = false } = {}) {
   return { removidos, reduzidos, liberados };
 }
 
-module.exports = { analisar, processar, desfazer, lerConta, lerComentario, dividirPaginas, DESCRICAO_PADRAO };
+module.exports = { analisar, processar, desfazer, quantidadeRestante, lerConta, lerComentario, dividirPaginas, DESCRICAO_PADRAO };

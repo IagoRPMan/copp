@@ -27,19 +27,33 @@ app.use((req, res, next) => {
 // Sem prazo de cache: o navegador revalida a cada visita (resposta 304, barata) e uma
 // correção de estilo ou script aparece na hora, sem precisar de Ctrl+F5.
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0 }));
+
+// Verificação de saúde para monitor externo (UptimeRobot e parecidos): responde 200 se o banco responde.
+// Não exige login e não revela nada além de "está no ar".
+app.get('/saude', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    get('SELECT 1 AS x');
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('saúde:', e);
+    res.status(503).json({ ok: false });
+  }
+});
+
 app.use(express.urlencoded({ extended: true, limit: '2mb', parameterLimit: 20000 }));
 app.use(auth.carregarSessao);
 
-// O endereço do estilo e do script leva a data da última alteração (style.css?v=...).
-// Assim, o navegador busca a versão nova assim que o arquivo muda, mesmo tendo uma cópia guardada.
-function versaoDosArquivos() {
+// O endereço do estilo e do script leva a data da última alteração (style.css?v=...), calculada uma vez
+// na subida do serviço. Toda publicação reinicia o serviço, então o navegador busca a versão nova na hora.
+const VERSAO = (() => {
   try {
     return ['style.css', 'app.js'].map((f) => Math.round(fs.statSync(path.join(__dirname, 'public', f)).mtimeMs).toString(36)).join('');
   } catch { return '0'; }
-}
+})();
 app.use((req, res, next) => {
   res.locals.fmt = fmt;
-  res.locals.versao = versaoDosArquivos();
+  res.locals.versao = VERSAO;
   res.locals.caminho = req.path;
   res.setHeader('Cache-Control', 'no-store');
   next();
@@ -125,7 +139,8 @@ app.post('/sair', auth.conferirCsrf, (req, res) => {
 
 app.get('/', (req, res) => {
   if (req.user.verTudo) return res.redirect('/painel');
-  if (req.user.funcao === 'contabilidade') return res.redirect('/importacoes');
+  // A Contabilidade confere e libera tudo: entra direto na conferência.
+  if (req.user.conferir) return res.redirect('/lancamentos');
   res.redirect('/lancamentos');
 });
 

@@ -2,17 +2,20 @@ const express = require('express');
 const { all, get, run, tx } = require('../db');
 const { flash } = require('../auth');
 const { competencias, competenciaDe, competenciaLiberada, auditar, condominiosAtivos, itensTodos, usuariosAtivos, equipeDe, descricoesPadrao, idLista } = require('../dominio');
-const { descricaoPadrao, descricaoValida } = require('../texto');
+const { descricaoPadrao, descricaoValida, dataValida } = require('../texto');
+const { quantidadeRestante } = require('../papercut');
 
 const r = express.Router();
 const LIMITE = 3000;
-// Administrador e Diretoria alcançam todas as carteiras. Os demais alcançam a própria,
-// a de quem responde a eles (supervisor → equipe), os prédios que gerenciam e o que eles mesmos lançaram.
-// Quem alcança um lançamento pode conferir, editar e aprovar.
-const ehAdmin = (req) => req.user.verTudo;
+// Quem confere e libera é sempre a Contabilidade (e o administrador). Ninguém aprova o próprio lançamento.
+// Para ver: Contabilidade, administrador e Diretoria veem tudo; os demais acompanham, só para consulta,
+// o que imprimiram ou lançaram, a carteira de quem responde a eles e os prédios que gerenciam.
+// Quem lançou à mão ainda pode corrigir ou cancelar o próprio lançamento enquanto ele estiver pendente.
+const veTudo = (req) => req.user.verTudo || req.user.conferir;
 const carteira = (req) => (req.carteira || (req.carteira = equipeDe(req.user.id)));
-const podeLiberar = (req, l) => ehAdmin(req) || carteira(req).includes(l.responsavel_id) || carteira(req).includes(l.cond_gerente) || l.criado_por === req.user.id;
-const podeMexer = podeLiberar;
+const podeVer = (req, l) => veTudo(req) || carteira(req).includes(l.responsavel_id) || carteira(req).includes(l.cond_gerente) || l.criado_por === req.user.id;
+const podeLiberar = (req) => !!req.user.conferir;
+const podeMexer = (req, l) => !!req.user.conferir || (l.criado_por === req.user.id && l.status === 'pendente');
 
 const SELECAO = `SELECT l.*, c.codigo AS cond_codigo, c.nome AS cond_nome, i.codigo AS item_codigo, i.descricao AS item_desc, i.conta AS conta, i.valor_livre AS valor_livre,
                         c.responsavel_id AS cond_gerente, u.nome AS resp_nome, f.nome AS func_nome
@@ -21,7 +24,7 @@ const SELECAO = `SELECT l.*, c.codigo AS cond_codigo, c.nome AS cond_nome, i.cod
 
 function carregar(req, res) {
   const l = get(SELECAO + ' WHERE l.id = ?', parseInt(req.params.id, 10) || 0);
-  if (!l || !podeMexer(req, l)) {
+  if (!l || !podeVer(req, l)) {
     res.status(404).render('erro', { titulo: 'Lançamento não encontrado', mensagem: 'Ele não existe ou pertence à carteira de outra pessoa.' });
     return null;
   }
@@ -38,7 +41,7 @@ r.get('/', (req, res) => {
   const onde = ['l.competencia = ?'];
   const p = [competencia];
   if (status === 'ativos') onde.push("l.status <> 'cancelado'"); else { onde.push('l.status = ?'); p.push(status); }
-  if (ehAdmin(req)) {
+  if (veTudo(req)) {
     filtros.responsavel = parseInt(req.query.responsavel, 10) || 0;
     if (filtros.responsavel) { onde.push('l.responsavel_id = ?'); p.push(filtros.responsavel); }
   } else {
@@ -72,6 +75,7 @@ r.get('/', (req, res) => {
 
   const grupos = [];
   for (const l of linhas) {
+    l.editavel = l.status === 'pendente' && podeMexer(req, l);
     let g = grupos[grupos.length - 1];
     if (!g || g.id !== l.condominio_id) { g = { id: l.condominio_id, codigo: l.cond_codigo, nome: l.cond_nome, linhas: [], valor: 0, pendentes: 0 }; grupos.push(g); }
     g.linhas.push(l);
@@ -87,7 +91,8 @@ r.get('/', (req, res) => {
   res.render('lancamentos', {
     comps, filtros, grupos, resumo, cortado, limite: LIMITE,
     condominios: condominiosAtivos(), descricoes: descricoesPadrao(),
-    responsaveis: ehAdmin(req) ? usuariosAtivos() : (carteira(req).length > 1 ? usuariosAtivos().filter((u) => carteira(req).includes(u.id)) : []),
+    responsaveis: veTudo(req) ? usuariosAtivos() : (carteira(req).length > 1 ? usuariosAtivos().filter((u) => carteira(req).includes(u.id)) : []),
+    podeLiberar: podeLiberar(req), veTudo: veTudo(req),
     compLiberada: competencia ? competenciaLiberada(competencia) : false,
     voltar: req.originalUrl,
   });
@@ -122,8 +127,8 @@ r.post('/lote', (req, res) => {
     }
     if (liberar) {
       for (const id of marcados) {
-        const l = get('SELECT l.id, l.responsavel_id, l.criado_por, l.status, c.responsavel_id AS cond_gerente FROM lancamentos l JOIN condominios c ON c.id = l.condominio_id WHERE l.id = ?', id);
-        if (!l || l.status !== 'pendente' || !podeLiberar(req, l)) continue;
+        const l = get('SELECT id, status FROM lancamentos WHERE id = ?', id);
+        if (!l || l.status !== 'pendente' || !podeLiberar(req)) continue;
         run("UPDATE lancamentos SET status = 'liberado', liberado_por = ?, liberado_em = datetime('now','localtime'), atualizado_em = datetime('now','localtime') WHERE id = ?", req.user.id, id);
         auditar(req.user.id, 'liberou', id, null);
         liberados++;
@@ -147,10 +152,12 @@ function voltarSeguro(v) {
 // ---- Formulário
 function opcoes(req, l) {
   const conta = (l && l.conta) || '1732';
-  return { condominios: condominiosAtivos(), descricoes: descricoesPadrao(), responsaveis: ehAdmin(req) ? usuariosAtivos() : [],
+  return { condominios: condominiosAtivos(), descricoes: descricoesPadrao(),
     itens: itensTodos().filter((i) => i.conta === conta && (i.ativo || (l && i.id === l.item_id))),
     funcionarios: conta === '1741' ? usuariosAtivos() : [],
-    podeLiberar: l && l.id ? podeLiberar(req, l) : false };
+    podeLiberar: l && l.id ? podeLiberar(req) : false,
+    podeEditar: !l || !l.id || podeMexer(req, l),
+    podeMover: podeLiberar(req) };
 }
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -168,7 +175,7 @@ function lerFormulario(req, atual) {
     data: String(b.data || ''),
     descricao: descricaoPadrao(b.descricao),
     quantidade: /^\d{1,7}$/.test(String(b.quantidade || '').trim()) ? parseInt(b.quantidade, 10) : 0,
-    responsavel_id: ehAdmin(req) ? (parseInt(b.responsavel_id, 10) || null) : undefined,
+    responsavel_id: undefined,
     funcionario_id: parseInt(b.funcionario_id, 10) || null,
     hora_inicio: HORA.test(b.hora_inicio || '') ? b.hora_inicio : null,
     hora_fim: HORA.test(b.hora_fim || '') ? b.hora_fim : null,
@@ -179,7 +186,7 @@ function lerFormulario(req, atual) {
   const item = get('SELECT * FROM itens WHERE id = ?', dados.item_id);
   if (!item || (!item.ativo && atual.item_id !== item.id)) erros.push('Escolha o item.');
   else if (item.conta !== atual.conta) erros.push('O item precisa ser da mesma conta do lançamento.');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dados.data) || Number.isNaN(Date.parse(dados.data))) erros.push('Informe a data.');
+  if (!dataValida(dados.data)) erros.push('Informe uma data válida.');
   if (!descricaoValida(dados.descricao)) erros.push('Descreva o que foi impresso (pelo menos 3 letras).');
   if (dados.quantidade < 1) erros.push('A quantidade precisa ser um número inteiro maior que zero.');
   let preco = null;
@@ -212,16 +219,15 @@ r.post('/novo', (req, res) => {
     return res.status(400).render('lancamento_form', { l, erros, trabalhos: [], historico: [], voltar, ...opcoes(req, l) });
   }
   const preco = item.valor_livre ? valorInformado : item.preco_centavos;
-  // O lançamento fica na carteira de quem lançou (o administrador pode escolher outra). O gerente do prédio também o vê.
-  const resp = (ehAdmin(req) && dados.responsavel_id) || req.user.id;
+  // Fica registrado em nome de quem lançou; a conferência e a liberação são da Contabilidade.
+  const resp = req.user.id;
   const competencia = competenciaDe(dados.data);
   const ins = run(`INSERT INTO lancamentos (competencia, condominio_id, item_id, data, descricao, quantidade, preco_centavos, valor_centavos, responsavel_id, origem, criado_por, funcionario_id, hora_inicio, hora_fim)
                    VALUES (?,?,?,?,?,?,?,?,?,'manual',?,?,?,?)`,
     competencia, dados.condominio_id, dados.item_id, dados.data, dados.descricao, dados.quantidade, preco, dados.quantidade * preco, resp, req.user.id,
     dados.funcionario_id || req.user.id, dados.hora_inicio, dados.hora_fim);
   auditar(req.user.id, conta === '1741' ? 'lançou condução' : 'criou manualmente', Number(ins.lastInsertRowid), null);
-  const dono = resp !== req.user.id ? get('SELECT nome FROM usuarios WHERE id = ?', resp) : null;
-  flash(req, 'ok', dono ? `Lançamento criado na carteira de ${dono.nome}.` : 'Lançamento criado como pendente. Confira e libere quando estiver certo.');
+  flash(req, 'ok', podeLiberar(req) ? 'Lançamento criado como pendente. Confira e libere quando estiver certo.' : 'Lançamento criado. Ele vai para a conferência da Contabilidade; enquanto estiver pendente, você ainda pode corrigi-lo.');
   res.redirect('/lancamentos?competencia=' + competencia);
 });
 
@@ -243,6 +249,7 @@ r.post('/:id', (req, res) => {
   if (!l) return;
   const voltar = voltarSeguro(req.body.voltar);
   if (l.status !== 'pendente') { flash(req, 'aviso', 'Só lançamentos pendentes podem ser editados. Reabra o lançamento primeiro.'); return res.redirect('/lancamentos/' + l.id); }
+  if (!podeMexer(req, l)) { flash(req, 'erro', 'Só a Contabilidade confere e altera este lançamento.'); return res.redirect('/lancamentos/' + l.id); }
   const { dados, erros, preco: valorInformado } = lerFormulario(req, l);
   if (erros.length) return res.status(400).render('lancamento_form', { l: { ...l, ...dados, responsavel_id: dados.responsavel_id === undefined ? l.responsavel_id : dados.responsavel_id }, erros, voltar, ...detalhes(l.id), ...opcoes(req, l) });
 
@@ -268,7 +275,7 @@ r.post('/:id', (req, res) => {
   if (dados.data !== l.data) mudancas.push(`data: ${l.data} → ${dados.data}`);
   if ((resp || null) !== (l.responsavel_id || null)) mudancas.push('responsável alterado');
 
-  const liberar = req.body.acao === 'liberar' && podeLiberar(req, l);
+  const liberar = req.body.acao === 'liberar' && podeLiberar(req);
   tx(() => {
     run(`UPDATE lancamentos SET competencia = ?, condominio_id = ?, item_id = ?, data = ?, descricao = ?, quantidade = ?, preco_centavos = ?, valor_centavos = ?,
                 responsavel_id = ?, alerta = CASE WHEN ? THEN NULL ELSE alerta END, atualizado_em = datetime('now','localtime') WHERE id = ?`,
@@ -294,11 +301,18 @@ r.post('/:id/mover', (req, res) => {
   const vinculos = all('SELECT trabalho_id, quantidade FROM lancamento_trabalhos WHERE lancamento_id = ?', l.id);
   const mover = vinculos.filter((v) => escolhidos.has(v.trabalho_id));
   const aqui = '/lancamentos/' + l.id + '?voltar=' + encodeURIComponent(voltarSeguro(req.body.voltar));
+  if (!podeLiberar(req)) { flash(req, 'erro', 'Só a Contabilidade move trabalhos entre condomínios.'); return res.redirect(aqui); }
   if (l.status !== 'pendente') { flash(req, 'aviso', 'Só lançamentos pendentes podem ser divididos.'); return res.redirect(aqui); }
   if (!destino || destino.id === l.condominio_id) { flash(req, 'erro', 'Escolha um condomínio de destino diferente do atual.'); return res.redirect(aqui); }
   if (!mover.length) { flash(req, 'erro', 'Marque os trabalhos que pertencem a outro condomínio.'); return res.redirect(aqui); }
 
   const qtd = mover.reduce((s, v) => s + v.quantidade, 0);
+  const vinculado = vinculos.reduce((s, v) => s + v.quantidade, 0);
+  const sobra = quantidadeRestante(l.quantidade, vinculado, qtd);
+  if (mover.length < vinculos.length && sobra.editado && l.quantidade - qtd < 1) {
+    flash(req, 'erro', `A quantidade deste lançamento foi corrigida para ${l.quantidade}, menos do que as ${qtd} página(s) marcadas. Ajuste a quantidade antes de mover.`);
+    return res.redirect(aqui);
+  }
   const resp = l.responsavel_id || destino.responsavel_id;
   let novoId = l.id;
   tx(() => {
@@ -307,7 +321,7 @@ r.post('/:id/mover', (req, res) => {
       run("UPDATE lancamentos SET condominio_id = ?, responsavel_id = ?, alerta = NULL, atualizado_em = datetime('now','localtime') WHERE id = ?", destino.id, resp, l.id);
       auditar(req.user.id, 'editou', l.id, `condomínio: ${l.cond_codigo} ${l.cond_nome} → ${destino.codigo} ${destino.nome}`);
     } else {
-      const resto = Math.max(1, l.quantidade - qtd);
+      const resto = sobra.quantidade;
       const ins = run(`INSERT INTO lancamentos (competencia, condominio_id, item_id, data, descricao, quantidade, preco_centavos, valor_centavos, responsavel_id, origem, importacao_id)
                        VALUES (?,?,?,?,?,?,?,?,?,'papercut',?)`,
         l.competencia, destino.id, l.item_id, l.data, l.descricao, qtd, l.preco_centavos, qtd * l.preco_centavos, resp, l.importacao_id);
@@ -326,7 +340,8 @@ r.post('/:id/cancelar', (req, res) => {
   const l = carregar(req, res);
   if (!l) return;
   const motivo = String(req.body.motivo || '').trim().slice(0, 200);
-  if (l.status !== 'pendente') flash(req, 'aviso', 'Só lançamentos pendentes podem ser cancelados.');
+  if (!podeMexer(req, l)) flash(req, 'erro', 'Só a Contabilidade cancela este lançamento.');
+  else if (l.status !== 'pendente') flash(req, 'aviso', 'Só lançamentos pendentes podem ser cancelados.');
   else if (!motivo) { flash(req, 'erro', 'Informe o motivo do cancelamento.'); return res.redirect('/lancamentos/' + l.id); }
   else {
     run("UPDATE lancamentos SET status = 'cancelado', cancelado_motivo = ?, atualizado_em = datetime('now','localtime') WHERE id = ?", motivo, l.id);
@@ -340,10 +355,8 @@ r.post('/:id/reabrir', (req, res) => {
   const l = carregar(req, res);
   if (!l) return;
   if (l.status === 'pendente') flash(req, 'aviso', 'Este lançamento já está pendente.');
-  else if (!podeLiberar(req, l)) flash(req, 'erro', 'Você não tem acesso a este lançamento.');
-  else if (!req.user.admin && l.status === 'liberado' && competenciaLiberada(l.competencia)) {
-    flash(req, 'erro', 'A competência já foi entregue à Contabilidade. Peça ao administrador para reabrir.');
-  } else {
+  else if (!podeLiberar(req)) flash(req, 'erro', 'Só a Contabilidade reabre lançamentos.');
+  else {
     run("UPDATE lancamentos SET status = 'pendente', liberado_por = NULL, liberado_em = NULL, cancelado_motivo = NULL, atualizado_em = datetime('now','localtime') WHERE id = ?", l.id);
     auditar(req.user.id, 'reabriu', l.id, l.status === 'cancelado' ? 'estava cancelado' : 'estava liberado');
     flash(req, 'ok', 'Lançamento reaberto para conferência.');

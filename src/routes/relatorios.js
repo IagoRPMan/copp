@@ -2,8 +2,9 @@ const express = require('express');
 const { all } = require('../db');
 const { competencias, periodoDaRegra, condominiosAtivos, contaDe, CONTAS, EMPRESA, fmt } = require('../dominio');
 
+const { dataValida } = require('../texto');
+
 const r = express.Router();
-const DATA = /^\d{4}-\d{2}-\d{2}$/;
 
 // Recortes de um mês: o período de fechamento cadastrado, o mês do calendário ou o ciclo de 16 a 15.
 const RECORTES = { fechamento: 'Período de fechamento', calendario: 'Mês do calendário (1 ao último dia)', ciclo16: 'Do dia 16 ao dia 15' };
@@ -18,7 +19,7 @@ function resolver(req) {
   const admin = req.user.admin;
   let de = String(req.query.de || '');
   let ate = String(req.query.ate || '');
-  const intervalo = DATA.test(de) && DATA.test(ate) && de <= ate;
+  const intervalo = dataValida(de) && dataValida(ate) && de <= ate;
   let competencia = null;
   const recorte = RECORTES[req.query.recorte] ? req.query.recorte : 'fechamento';
   if (!intervalo) {

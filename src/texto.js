@@ -10,4 +10,11 @@ const descricaoPadrao = (v) => String(v || '').replace(/\s+/g, ' ').trim().repla
 // Pelo menos 3 letras: "." ou "1" não dizem o que foi impresso.
 const descricaoValida = (v) => (String(v || '').match(/\p{L}/gu) || []).length >= 3;
 
-module.exports = { nomeMaiusculo, emailMinusculo, emailValido, perfilIncompleto, descricaoPadrao, descricaoValida };
+// Data AAAA-MM-DD que existe no calendário. Date.parse aceita 31/02 e o converte em 03/03; aqui, não.
+const dataValida = (v) => {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(v + 'T00:00:00Z');
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+};
+
+module.exports = { dataValida, nomeMaiusculo, emailMinusculo, emailValido, perfilIncompleto, descricaoPadrao, descricaoValida };
