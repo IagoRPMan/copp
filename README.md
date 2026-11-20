@@ -1,109 +1,138 @@
-# COPP — cópias e impressões por condomínio
+<p align="center">
+  <img src="logo-copp.png" alt="COPP" width="420">
+</p>
 
-Recebe o relatório de trabalhos de impressão do PaperCut, gera os lançamentos por condomínio, deixa-os pendentes para conferência e entrega o mês à Contabilidade quando todos os responsáveis liberam.
+<p align="center">
+  <strong>Cópias e conduções, conferidas antes de chegar ao condomínio.</strong><br>
+  Sistema web que transforma o log de impressão do PaperCut em lançamentos por condomínio, com conferência da Contabilidade, trilha de auditoria e relatório A4 pronto para a prestação de contas.
+</p>
 
-## Rodar
+<p align="center">
+  <a href="https://github.com/IagoRPMan/copp/actions/workflows/ci.yml"><img src="https://github.com/IagoRPMan/copp/actions/workflows/ci.yml/badge.svg" alt="Testes"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A5%2022.13-17694e" alt="Node.js 22.13 ou mais novo">
+  <img src="https://img.shields.io/badge/banco-SQLite%20nativo-17694e" alt="SQLite nativo do Node">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-17694e" alt="Licença MIT"></a>
+</p>
 
-Precisa de Node.js 22.13 ou mais novo. Não há banco para instalar: os dados ficam num arquivo SQLite em `data/`.
+<p align="center">
+  <a href="#rodar-em-1-minuto">Rodar a demonstração</a> ·
+  <a href="#decisões-técnicas">Decisões técnicas</a> ·
+  <a href="docs/ARQUITETURA.md">Arquitetura</a> ·
+  <a href="docs/OPERACAO.md">Manual de operação</a> ·
+  <a href="README.en.md">English</a>
+</p>
+
+---
+
+![Conferência: a Contabilidade confere descrição e quantidade e libera em lote](docs/screenshots/conferencia.png)
+
+## O problema
+
+Uma administradora de condomínios imprime, todo mês, milhares de páginas em nome dos prédios que administra: atas, balancetes, circulares, boletos. Cada página precisa ser cobrada do condomínio certo, com uma descrição que o síndico entenda, e o total entra na prestação de contas.
+
+O PaperCut sabe quantas páginas saíram e de qual conta, mas não sabe se a conta estava certa, nem descreve o que foi impresso de um jeito que o síndico entenda. Sem conferência, um trabalho cobrado da conta errada vai parar na prestação de contas do condomínio errado, e não fica registrado quem aprovou o quê.
+
+**O COPP está em produção** e roda numa VPS Linux atrás de Nginx. O mês da administradora fecha por ele.
+
+## O que ele faz
+
+| | |
+|---|---|
+| **Importa o PaperCut** | Lê o CSV exportado (em português do Brasil, de Portugal ou em inglês), ignora o que não foi impresso, cancelado ou reembolsado e mostra uma **prévia** antes de gravar. Reimportar o mesmo arquivo, ou arquivos parciais em qualquer ordem, não duplica nada. |
+| **Agrupa em lançamentos** | Um lançamento por condomínio × item (P&B, colorida, frente e verso) × descrição × quem imprimiu, dentro da competência. O preço vem da tabela do sistema, não do PaperCut. |
+| **Avisa o que parece errado** | Se o comentário digitado no PaperCut cita o código de outro condomínio, o lançamento chega marcado com alerta. Trabalhos cobrados da conta errada podem ser **movidos** para o condomínio certo, inclusive em parte. |
+| **Separa quem lança de quem aprova** | Todos lançam cópias manuais; a Expedição lança condução. **Só a Contabilidade confere e libera**: ninguém aprova o próprio lançamento. |
+| **Fecha o mês** | Com período configurável (1 a 30 ou 16 a 15). Quando não resta pendente, sai o relatório A4 por condomínio, no layout que a Contabilidade já usava, e a planilha CSV. |
+| **Guarda a história** | Toda edição, liberação, cancelamento, importação e mudança de cadastro fica na auditoria, com autor, horário e o valor de antes e depois. |
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/painel.png" alt="Painel do mês"><br><sub><b>Painel do mês:</b> quanto falta para fechar e em quais condomínios.</sub></td>
+    <td width="50%"><img src="docs/screenshots/relatorio.png" alt="Relatório A4 por condomínio"><br><sub><b>Relatório:</b> folhas A4 com margem de furação, prontas para imprimir ou salvar em PDF.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/novo-lancamento.png" alt="Novo lançamento"><br><sub><b>Novo lançamento:</b> cópias para todos, condução só para a Expedição.</sub></td>
+    <td width="50%"><img src="docs/screenshots/entrada.png" alt="Tela de entrada"><br><sub><b>Entrada:</b> o fluxo do sistema em três linhas.</sub></td>
+  </tr>
+</table>
+
+## Rodar em 1 minuto
+
+Precisa só do **Node.js 22.13 ou mais novo**. Não há banco para instalar nem etapa de build.
 
 ```bash
+git clone https://github.com/IagoRPMan/copp.git
+cd copp
 npm install
-npm start
+npm run demo
 ```
 
-Abra `http://localhost:3210`. No primeiro início o sistema cria o usuário `admin` e grava a senha inicial em `data/admin-inicial.txt`. Troque a senha no primeiro acesso e apague o arquivo.
+Abra <http://localhost:3210>. A demonstração cria um banco novo em `demo-data/` com **dados fictícios** (12 condomínios, um mês de impressões geradas no formato do PaperCut e importadas pelo mesmo código de produção) e mostra os usuários no terminal. A senha de todos é `demo1234`:
+
+| Usuário | Perfil | Experimente |
+|---|---|---|
+| `ana.contabil` | Contabilidade | Conferir, corrigir a descrição na própria lista, liberar em lote, mover um trabalho com alerta |
+| `carla.gerente` | Gerência | Lançar cópias e ver que não há botão de liberar |
+| `edson.exp` | Expedição | Lançar condução (só este perfil vê a opção) |
+| `diretor` | Diretoria | Acompanhar o painel e os relatórios |
+| `admin` | Administrador | Cadastros, fechamento do mês, auditoria |
+
+Para rodar com um banco vazio, use `npm start`; na primeira vez o sistema cria o `admin` e grava a senha inicial em `data/admin-inicial.txt`.
+
+## Decisões técnicas
+
+**Sem dependência de banco.** O SQLite vem do próprio Node (`node:sqlite`), em modo WAL. Para o volume de uma administradora (milhares de lançamentos por mês), um arquivo único é mais simples de operar, copiar e restaurar do que um servidor de banco. O backup é um `VACUUM INTO` consistente, feito com o sistema no ar.
+
+**Dinheiro em centavos inteiros.** Nenhum valor passa por ponto flutuante. O preço é gravado no lançamento no momento em que ele nasce: mudar a tabela não altera o que já foi cobrado, a menos que se peça para recalcular os pendentes.
+
+**Importação idempotente.** O export do PaperCut não traz identificador de trabalho. Cada trabalho recebe uma chave derivada dos campos estáveis e da ordem de aparição; assim, duas reimpressões idênticas no mesmo segundo continuam sendo duas, e importar o mesmo arquivo de novo não duplica nada. A gravação inteira, inclusive a criação de períodos, roda numa única transação.
+
+**Renderizado no servidor, sem build.** Express + EJS e um único arquivo de JavaScript no navegador, que só melhora o que já funciona sem ele (máscara de valor, lista de descrições, ordenação de colunas, confirmação de lote). Isso deixa o sistema rápido em máquinas antigas de escritório e o deploy reduzido a copiar arquivos.
+
+**Segurança.** Senhas com `scrypt` e sal; sessões no servidor com cookie `HttpOnly`/`SameSite`; token CSRF em todo POST; CSP sem `unsafe-inline`; limite de tentativas de login; consultas sempre parametrizadas; células de CSV protegidas contra injeção de fórmula; códigos de recuperação de senha de uso único, guardados só como hash.
+
+**Permissões que o servidor garante.** Esconder o botão não basta: cada rota confere o perfil de novo. Os testes sobem o app de verdade e tentam liberar, cancelar e lançar condução com o perfil errado.
+
+**Operação pensada desde o começo.** Endpoint `/saude` para monitor externo, backup diário com retenção, serviço `systemd` endurecido (`ProtectSystem=strict`, escrita só na pasta de dados) e um script de publicação que instala a versão nova ao lado da atual, roda os testes, troca e **volta sozinho** se o sistema não responder.
+
+Mais detalhes, com o diagrama do fluxo e o modelo de dados, em [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
+
+## Estrutura
+
+```
+server.js              entrada, segurança HTTP, login, sessão e montagem das rotas
+src/
+  db.js                esquema, migrações e acesso ao SQLite
+  auth.js              senhas, sessões, perfis, CSRF e limite de tentativas
+  papercut.js          leitura do CSV, montagem dos lançamentos, desfazer importação
+  dominio.js           competências e fechamento, auditoria, formatação
+  texto.js             normalização e validação (datas, valores em reais, descrições)
+  carga.js             carga de condomínios e carteiras por planilha
+  routes/              importações, lançamentos, área de lançar, painel, relatórios, cadastros
+views/                 telas EJS e as folhas A4 do relatório
+public/                CSS e o único script do navegador
+scripts/               backup, carga inicial e demonstração
+deploy/                systemd, Nginx, publicar.sh e voltar.sh
+test/                  importação, regras de negócio e permissões (node:test)
+```
+
+## Testes
 
 ```bash
 npm test
 ```
 
-## Como o mês anda
+Usam o executor nativo do Node (`node:test`), sem bibliotecas extras. Cada execução cria um banco descartável; os testes de regras sobem o servidor numa porta livre e conversam com ele por HTTP, com sessões de usuários de perfis diferentes. Rodam a cada push no GitHub Actions, em Node 22 e 24.
 
-1. **Contabilidade** (ou o administrador) exporta do PaperCut o registro de trabalhos de impressão de todos os usuários e envia em "Importar do PaperCut". A prévia mostra o que será lançado; nada é gravado antes da confirmação.
-2. O sistema cria um lançamento por condomínio × item × descrição × responsável, dentro do mês da impressão. O valor é quantidade × tabela de preços do sistema (o custo calculado pelo PaperCut é ignorado).
-3. A **Contabilidade** confere tudo: corrige descrição e quantidade na lista, troca condomínio ou item no detalhe, move trabalhos cobrados da conta errada, cancela com motivo e libera. Ninguém aprova o próprio lançamento.
-4. Quando não resta nenhum pendente no mês, o relatório (uma página por condomínio) e a planilha CSV ficam disponíveis.
+## Documentação
 
-Arquivos parciais do mesmo mês podem ser enviados em qualquer ordem: trabalhos já importados são pulados e as páginas novas somam nos lançamentos que ainda estão pendentes. Uma importação pode ser desfeita enquanto nada dela tiver sido liberado.
+- [Arquitetura](docs/ARQUITETURA.md): fluxo, modelo de dados e decisões em detalhe
+- [Manual de operação](docs/OPERACAO.md): regras de negócio, perfis, variáveis de ambiente, backup e monitoramento
+- [Publicar numa VPS](deploy/PUBLICAR.md): atualização com backup, testes e volta automática
+- [Como contribuir](CONTRIBUTING.md) · [Segurança](SECURITY.md) · [Mudanças por versão](CHANGELOG.md)
 
-## Quem pode o quê
+## Autor
 
-| Quem | O que faz |
-|---|---|
-| **Administrador** | Poder total: cadastros, importação, conferência, relatórios, auditoria |
-| Usuário da **Contabilidade** | Importa o PaperCut, confere, corrige, cancela, libera e reabre lançamentos; emite relatórios |
-| Usuário da **Diretoria** | Acompanha o painel, todos os lançamentos e os relatórios, sem liberar |
-| Usuário da **Gerência** | Acompanha os lançamentos dos condomínios em que é o gerente |
-| Quem tem gente que **responde a ele** | Acompanha também os lançamentos dessas pessoas |
-| **Usuário** (todos os outros) | Lança conduções e cópias manuais e acompanha o que imprimiu ou lançou |
+Desenvolvido por **Iago R. Prado Man** ([IRPM Tecnologia](https://github.com/IagoRPMan)), do levantamento com a Contabilidade à publicação em produção.
 
-Só a Contabilidade (e o administrador) libera. Quem criou um lançamento manual ainda pode corrigi-lo ou cancelá-lo enquanto ele estiver pendente, mas não aprová-lo. O alcance de cada departamento é configurável em Cadastros → Departamentos.
-
-## Carga inicial de condomínios e carteiras
-
-`dados-iniciais/condominios.csv` traz os condomínios, o gerente de cada um e o supervisor dos gerentes. Para carregar (ou recarregar, sem duplicar):
-
-```bash
-npm run carga
-```
-
-A mesma planilha pode ser enviada pela tela Cadastros → Condomínios. As pessoas entram sem senha; o administrador gera a senha temporária de cada uma em Cadastros → Usuários.
-
-## Regras que vale conhecer
-
-- **Quem imprimiu:** cada lançamento importado fica registrado em nome de quem imprimiu (o manual, de quem lançou). Serve para acompanhar e para o relatório por funcionário; a conferência é sempre da Contabilidade.
-- **Conta do PaperCut:** uma conta ainda desconhecida é ligada ao condomínio pelo código do nome ("076 - …" → 0076). Sem condomínio com esse código, ele é criado.
-- **Dupla face:** o item nasce desativado e as páginas contam como cópia simples. Ative e defina o preço em "Itens e preços".
-- **Preço:** fica gravado no lançamento. Mudar a tabela só afeta importações futuras, a menos que se marque "Recalcular pendentes".
-- **Alerta:** quando o comentário digitado no PaperCut cita um código de condomínio diferente da conta cobrada, o lançamento vem marcado.
-- **Contas internas:** desmarque "Gerar lançamentos" no condomínio para contas da própria administradora.
-- **Auditoria:** edição, liberação, reabertura, cancelamento, importação e mudança de cadastro ficam registradas com autor e horário.
-
-## Variáveis de ambiente
-
-| Variável | Padrão | Para que serve |
-|---|---|---|
-| `PORT` | `3210` | Porta HTTP |
-| `HOST` | `127.0.0.1` | Endereço de escuta. Mantenha local e publique por proxy reverso |
-| `DATA_DIR` | `./data` | Pasta do banco, dos uploads temporários e dos backups |
-| `COOKIE_SEGURO` | — | Defina `1` em produção com HTTPS, para o cookie de sessão só trafegar cifrado |
-| `ADMIN_SENHA` | — | Senha inicial do `admin`, em vez de gerar uma no arquivo |
-| `TZ` | do servidor | Use `America/Sao_Paulo` para os horários do histórico |
-
-## Publicar numa VPS Linux
-
-Exemplos prontos em `deploy/`. Em resumo:
-
-1. Instale o Node.js 22 ou 24 e copie a pasta `app` para `/opt/copp` (sem `node_modules` e sem `data`).
-2. Crie um usuário de sistema sem login para o serviço e rode `npm ci --omit=dev` em `/opt/copp`.
-3. Instale `deploy/copp.service` em `/etc/systemd/system/`, ajuste caminhos e ative com `systemctl enable --now copp`.
-4. Publique por Nginx com HTTPS usando `deploy/nginx.conf` como base. O serviço escuta só em `127.0.0.1`.
-5. Agende o backup diário: `0 2 * * * cd /opt/copp && DATA_DIR=/var/lib/copp /usr/bin/node scripts/backup.js`.
-
-O backup grava uma cópia consistente em `data/backups` e mantém as 30 mais recentes. Para restaurar, pare o serviço e substitua `copp.db` pela cópia.
-
-**Cópia fora da VPS.** Um backup que fica só na VPS some junto com ela. Duas formas simples:
-
-- *Puxar para um computador do escritório* (Windows, Agendador de Tarefas, todo dia às 3h):
-  `scp -P 22022 -i %USERPROFILE%\.ssh\copp_vps root@SEU_IP:/var/lib/copp/backups/*.db D:\Backups\COPP\`
-- *Enviar para a nuvem* com o [rclone](https://rclone.org) (Google Drive, OneDrive, S3): configure o destino uma vez com `rclone config` e acrescente ao cron, depois do backup:
-  `30 2 * * * root rclone copy /var/lib/copp/backups copp-nuvem:COPP/backups --max-age 48h`
-
-Teste a restauração de uma cópia de vez em quando: backup que nunca foi restaurado não é garantia.
-
-**Monitoramento.** `GET /saude` responde `{"ok":true}` (200) quando o sistema e o banco estão no ar, sem exigir login. Cadastre `https://SEU_DOMINIO/saude` num monitor gratuito como o UptimeRobot para receber um e-mail se o COPP cair.
-
-## Estrutura
-
-```
-server.js            entrada, login, sessão e montagem das rotas
-src/db.js            esquema e acesso ao SQLite
-src/auth.js          senhas, sessões, perfis e CSRF
-src/papercut.js      leitura do CSV, geração de lançamentos, desfazer importação
-src/dominio.js       competências, auditoria e formatação
-src/routes/          importações, conferência, relatórios, cadastros
-views/               telas (EJS)
-public/              estilo e script
-scripts/backup.js    cópia de segurança
-test/                testes da importação
-```
+Distribuído sob a [licença MIT](LICENSE).
