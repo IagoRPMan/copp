@@ -18,7 +18,7 @@ Primeira versão pública.
 
 ### Mudado
 - **Toda conferência e liberação passa a ser da Contabilidade.** Ninguém aprova o próprio lançamento; os demais perfis acompanham.
-- Redesenho completo da interface.
+- Redesenho completo da interface, nas cores da logo do COPP (azul-marinho e verde), com a logo no menu, na entrada e no ícone da aba.
 - Painel do mês agrupado por condomínio.
 - Formulário de condução sem funcionário e horários; a condução fica em nome de quem lançou.
 - Relatório de condução mostra só a descrição.
