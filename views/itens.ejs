@@ -12,7 +12,7 @@
     <tr>
       <td class="num"><%= fmt.cod4(i.codigo) %></td>
       <td><input form="<%= f %>" name="descricao" value="<%= i.descricao %>" maxlength="80" aria-label="Descrição do item <%= i.codigo %>" required></td>
-      <td><% if (i.valor_livre) { %><span class="nota">Informado no lançamento</span><% } else { %><input form="<%= f %>" name="preco" class="curto num" inputmode="decimal" value="<%= fmt.dec(i.preco_centavos) %>" aria-label="Preço do item <%= i.codigo %>" required><% } %></td>
+      <td><% if (i.valor_livre) { %><span class="nota">Informado no lançamento</span><% } else { %><input form="<%= f %>" name="preco" class="curto num" inputmode="numeric" data-moeda="7" value="<%= fmt.dec(i.preco_centavos) %>" aria-label="Preço do item <%= i.codigo %>" required><% } %></td>
       <td><% if (fixo) { %>Ativo<% } else { %>
           <label class="marcar"><input form="<%= f %>" type="checkbox" name="ativo" value="1"<%= i.ativo ? ' checked' : '' %>> <%= i.tipo === 'duplex' ? 'Cobrar à parte' : 'Ativo' %></label>
           <% if (!i.ativo) { %><div class="nota"><%= i.tipo === 'duplex' ? 'Desativado: dupla face entra como cópia simples.' : 'Desativado: não aparece no lançamento. Informe o preço e ative.' %></div><% } %>
@@ -35,7 +35,7 @@
     </select></label>
   <label>Código <input name="codigo" inputmode="numeric" pattern="[0-9]{1,4}" maxlength="4" placeholder="Ex.: 20" required></label>
   <label>Descrição <input name="descricao" maxlength="80" placeholder="Ex.: Encadernação" required></label>
-  <label>Preço (R$) <input name="preco" inputmode="decimal" placeholder="0,00"></label>
+  <label>Preço (R$) <input name="preco" inputmode="numeric" data-moeda="7" placeholder="0,00"></label>
   <label class="marcar"><input type="checkbox" name="valor_livre" value="1"> Valor informado em cada lançamento</label>
   <button class="botao primario">Criar item</button>
 </form>

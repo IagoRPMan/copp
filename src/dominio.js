@@ -1,6 +1,10 @@
 const { all, get, run } = require('./db');
 
-const EMPRESA = process.env.EMPRESA_NOME || 'Prop Starter - Administração de Imóveis';
+// Identidade da administradora que usa o sistema. Fica na configuração do servidor, não no código:
+// EMPRESA_NOME aparece no topo das folhas, EMPRESA_CURTA no "Emitido ... pela X" e EMPRESA_LOGO é o caminho de uma imagem.
+const EMPRESA = process.env.EMPRESA_NOME || 'Administradora Exemplo';
+const EMPRESA_CURTA = process.env.EMPRESA_CURTA || EMPRESA.split(/\s+-\s+/)[0].toLocaleUpperCase('pt-BR');
+const EMPRESA_LOGO = process.env.EMPRESA_LOGO || '';
 const CONTAS = {
   1732: { codigo: '1732', nome: 'Cópias xerográficas', titulo: 'Relatório de cópias xerográficas', tituloFolha: 'RELATÓRIO DE CÓPIAS XEROGRÁFICAS', unidade: 'páginas' },
   1741: { codigo: '1741', nome: 'Despesas de condução', titulo: 'Relatório de despesas de condução', tituloFolha: 'RELATÓRIO DE DESPESAS DE CONDUÇÃO', unidade: 'conduções' },
@@ -148,4 +152,4 @@ const descricoesPadrao = () => all('SELECT id, texto FROM descricoes ORDER BY te
 
 const idLista = (v) => (Array.isArray(v) ? v : v ? [v] : []).map((x) => parseInt(x, 10)).filter((n) => Number.isInteger(n) && n > 0);
 
-module.exports = { CONTA_CONTABIL, EMPRESA, CONTAS, contaDe, fmt, config, definirConfig, diaInicio, periodoDaRegra, competenciaDaRegra, competenciaDe, aplicarRegraFechamento, reajustarPeriodosAbertos, competencias, competenciaLiberada, auditar, condominiosAtivos, itensTodos, usuariosAtivos, departamentos, equipeDe, descricoesPadrao, idLista };
+module.exports = { CONTA_CONTABIL, EMPRESA, EMPRESA_CURTA, EMPRESA_LOGO, CONTAS, contaDe, fmt, config, definirConfig, diaInicio, periodoDaRegra, competenciaDaRegra, competenciaDe, aplicarRegraFechamento, reajustarPeriodosAbertos, competencias, competenciaLiberada, auditar, condominiosAtivos, itensTodos, usuariosAtivos, departamentos, equipeDe, descricoesPadrao, idLista };

@@ -11,7 +11,7 @@ process.env.ADMIN_SENHA = 'senha-de-teste-123';
 const app = require('../server');
 const papercut = require('../src/papercut');
 const { get, run } = require('../src/db');
-const { dataValida } = require('../src/texto');
+const { dataValida, centavosDeReais } = require('../src/texto');
 const auth = require('../src/auth');
 
 const CAB = 'Data;Usuário;Nome completo;Conta cobrada;Nome da conta compartilhada;Nome da Impressora;Documento;Tipo de Uso;Total Páginas impressas;Total de páginas coloridas;Cópias;Custo;Duplo;Comentário;Impresso;Cancelado;Reembolsado';
@@ -22,7 +22,8 @@ const importar = (arquivo, ...ls) => {
 };
 
 // Pessoas com perfil completo e sessão aberta, para conversar com o app de verdade.
-const deptoDe = (funcao) => get('SELECT id FROM departamentos WHERE funcao = ? ORDER BY ordem LIMIT 1', funcao).id;
+// "funcao" pode ser a função (gerencia, contabilidade...) ou o nome do departamento (EXPEDIÇÃO).
+const deptoDe = (funcao) => (get('SELECT id FROM departamentos WHERE nome = ?', funcao) || get('SELECT id FROM departamentos WHERE funcao = ? ORDER BY ordem LIMIT 1', funcao)).id;
 function pessoa(login, nome, funcao) {
   const u = get('SELECT id FROM usuarios WHERE login = ?', login);
   const id = u ? u.id : Number(run("INSERT INTO usuarios (login, nome, papel) VALUES (?, ?, 'responsavel')", login, nome).lastInsertRowid);
@@ -122,24 +123,41 @@ test('lançamento manual: quem lançou corrige, mas não aprova o próprio', asy
   assert.equal(get('SELECT quantidade FROM lancamentos WHERE id = ?', l.id).quantidade, 6, 'liberado não muda mais');
 });
 
-test('área Novo lançamento: todos lançam condução sem funcionário nem horário e voltam para ela', async () => {
+test('área Novo lançamento: só a Expedição lança condução, sem funcionário nem horário', async () => {
   const ger = pessoa('ger1', 'GERENTE UM', 'gerencia');
+  const exp = pessoa('exp1', 'EDSON EXPEDICAO', 'EXPEDIÇÃO');
   const inicio = await pedir(ger, '/');
   assert.equal(inicio.headers.get('location'), '/lancar', 'quem não confere entra pela área de lançar');
-  const pagina = await pedir(ger, '/lancar');
-  assert.equal(pagina.status, 200);
-  assert.match(await pagina.text(), /Lançar condução/);
+  const paginaGer = await (await pedir(ger, '/lancar')).text();
+  assert.match(paginaGer, /Lançar cópias/);
+  assert.doesNotMatch(paginaGer, /Lançar condução/, 'a gerência não vê a condução');
+  assert.match(await (await pedir(exp, '/lancar')).text(), /Lançar condução/, 'a Expedição vê');
 
   const cond = get("SELECT id FROM condominios WHERE codigo = '0076'").id;
   const item = get("SELECT id FROM itens WHERE conta = '1741' AND ativo = 1 AND valor_livre = 0 ORDER BY id LIMIT 1").id;
-  const r = await enviar(ger, '/lancamentos/novo', { conta: '1741', condominio_id: String(cond), item_id: String(item), data: '2026-11-12', descricao: 'Ao condomínio entregar malote', quantidade: '1', voltar: '/lancar' });
+  const campos = { conta: '1741', condominio_id: String(cond), item_id: String(item), data: '2026-11-12', descricao: 'Ao condomínio entregar malote', quantidade: '1', voltar: '/lancar' };
+  assert.equal((await pedir(ger, '/lancamentos/novo?conta=1741')).status, 403);
+  assert.equal((await enviar(ger, '/lancamentos/novo', campos)).status, 403, 'nem enviando o formulário direto');
+
+  const r = await enviar(exp, '/lancamentos/novo', campos);
   assert.equal(r.headers.get('location'), '/lancar');
-  const l = get("SELECT id, funcionario_id, hora_inicio, criado_por FROM lancamentos WHERE descricao = 'AO CONDOMÍNIO ENTREGAR MALOTE'");
-  assert.equal(l.funcionario_id, ger.id, 'a condução fica em nome de quem lançou');
+  const l = get("SELECT id, funcionario_id, hora_inicio FROM lancamentos WHERE descricao = 'AO CONDOMÍNIO ENTREGAR MALOTE'");
+  assert.equal(l.funcionario_id, exp.id, 'a condução fica em nome de quem lançou');
   assert.equal(l.hora_inicio, null);
-  assert.match(await (await pedir(ger, '/lancar')).text(), new RegExp('>' + l.id + '<'), 'aparece em "Seus lançamentos"');
-  const form = await (await pedir(ger, '/lancamentos/novo?conta=1741&voltar=/lancar')).text();
+  assert.match(await (await pedir(exp, '/lancar')).text(), new RegExp('>' + l.id + '<'), 'aparece em "Seus lançamentos"');
+  const form = await (await pedir(exp, '/lancamentos/novo?conta=1741&voltar=/lancar')).text();
   assert.doesNotMatch(form, /funcionario_id|hora_inicio|hora_fim/, 'o formulário não pede mais esses campos');
+});
+
+test('valor em reais: aceita o formato brasileiro com milhar e recusa o que não é valor', () => {
+  assert.equal(centavosDeReais('12,50'), 1250);
+  assert.equal(centavosDeReais('1.234,56'), 123456);
+  assert.equal(centavosDeReais('0,38'), 38);
+  assert.equal(centavosDeReais('12.50'), 1250, 'ponto decimal de versões antigas');
+  assert.equal(centavosDeReais('0,00'), 0);
+  assert.equal(centavosDeReais('abc'), null);
+  assert.equal(centavosDeReais('1,234'), null);
+  assert.equal(centavosDeReais('100.000,00', 9999999), null, 'acima do limite');
 });
 
 test('saúde responde sem login', async () => {

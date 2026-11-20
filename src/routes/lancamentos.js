@@ -2,7 +2,7 @@ const express = require('express');
 const { all, get, run, tx } = require('../db');
 const { flash } = require('../auth');
 const { competencias, competenciaDe, competenciaLiberada, auditar, condominiosAtivos, itensTodos, usuariosAtivos, equipeDe, descricoesPadrao, idLista } = require('../dominio');
-const { descricaoPadrao, descricaoValida, dataValida } = require('../texto');
+const { descricaoPadrao, descricaoValida, dataValida, centavosDeReais } = require('../texto');
 const { quantidadeRestante } = require('../papercut');
 
 const r = express.Router();
@@ -160,10 +160,8 @@ function opcoes(req, l) {
     podeMover: podeLiberar(req) };
 }
 
-function centavosDe(texto) {
-  const m = /^\s*(\d{1,6})(?:[.,](\d{1,2}))?\s*$/.exec(String(texto || ''));
-  return m ? parseInt(m[1], 10) * 100 + parseInt((m[2] || '0').padEnd(2, '0'), 10) : null;
-}
+// Até R$ 999.999,99 por condução.
+const centavosDe = (texto) => centavosDeReais(texto, 99999999);
 
 /** Lê e valida o formulário. "atual" é o lançamento em edição, ou só { conta } num lançamento novo. */
 function lerFormulario(req, atual) {
@@ -195,7 +193,15 @@ function lerFormulario(req, atual) {
 
 const contaPedida = (v) => (String(v) === '1741' ? '1741' : '1732');
 
+// Condução é lançada só pela Expedição (departamento marcado em Cadastros → Departamentos).
+function negarConducao(req, res) {
+  if (contaPedida(req.query.conta || req.body.conta) !== '1741' || req.user.lancaConducao) return false;
+  res.status(403).render('erro', { titulo: 'Lançamento de condução', mensagem: 'O lançamento de condução é feito pela Expedição. Se você precisa lançar, peça ao administrador para liberar o seu departamento.' });
+  return true;
+}
+
 r.get('/novo', (req, res) => {
+  if (negarConducao(req, res)) return;
   const hoje = new Date();
   const l = { id: 0, status: 'pendente', conta: contaPedida(req.query.conta), condominio_id: 0, item_id: 0, descricao: '', quantidade: '', responsavel_id: null,
     valor: '',
@@ -205,6 +211,7 @@ r.get('/novo', (req, res) => {
 });
 
 r.post('/novo', (req, res) => {
+  if (negarConducao(req, res)) return;
   const conta = contaPedida(req.body.conta);
   const { dados, erros, item, preco: valorInformado } = lerFormulario(req, { conta, item_id: 0 });
   const voltar = voltarSeguro(req.body.voltar);

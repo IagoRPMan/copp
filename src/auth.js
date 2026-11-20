@@ -104,7 +104,7 @@ function carregarSessao(req, res, next) {
   res.locals.flash = null;
   const token = lerCookie(req);
   if (token && /^[a-f0-9]{64}$/.test(token)) {
-    const s = get(`SELECT s.token, s.csrf, s.flash, u.id, u.login, u.nome, u.email, u.papel, u.trocar_senha, u.recuperacao_hash IS NULL AS sem_codigo, d.nome AS depto, d.funcao
+    const s = get(`SELECT s.token, s.csrf, s.flash, u.id, u.login, u.nome, u.email, u.papel, u.trocar_senha, u.recuperacao_hash IS NULL AS sem_codigo, d.nome AS depto, d.funcao, d.lanca_conducao
                    FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id LEFT JOIN departamentos d ON d.id = u.departamento_id
                    WHERE s.token = ? AND s.expira_em > ? AND u.ativo = 1`, token, Date.now());
     if (s) {
@@ -118,6 +118,8 @@ function carregarSessao(req, res, next) {
         podeImportar: admin || s.funcao === 'contabilidade',
         // Toda conferência e liberação de lançamentos é da Contabilidade (e do administrador).
         conferir: admin || s.funcao === 'contabilidade',
+        // Condução só é lançada por quem é de um departamento marcado para isso (a Expedição).
+        lancaConducao: admin || !!s.lanca_conducao,
         verRelatorios: admin || s.funcao === 'contabilidade' || s.funcao === 'diretoria',
         verTudo: admin || s.funcao === 'diretoria',
         logado: true,

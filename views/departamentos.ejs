@@ -1,14 +1,15 @@
 <%- include('partials/topo', { titulo: 'Departamentos' }) %>
 <header class="cabeca"><h1>Departamentos</h1></header>
-<p class="nota">Quem confere e libera lançamentos é a Contabilidade. Os demais lançam conduções e cópias manuais e acompanham o que imprimiram; o alcance do departamento define o que cada um enxerga além disso.</p>
+<p class="nota">Quem confere e libera lançamentos é a Contabilidade. Todos lançam cópias manuais e acompanham o que imprimiram; condução, só os departamentos marcados (a Expedição). O alcance define o que cada um enxerga além disso.</p>
 <div class="rolagem"><table class="tabela">
-  <thead><tr><th>Departamento</th><th>Alcance</th><th class="d">Usuários</th><th></th><th></th></tr></thead>
+  <thead><tr><th>Departamento</th><th>Alcance</th><th>Condução</th><th class="d">Usuários</th><th></th><th></th></tr></thead>
   <tbody>
   <% lista.forEach((d) => { const f = 'dep' + d.id; %>
     <tr>
       <td><input form="<%= f %>" name="nome" value="<%= d.nome %>" maxlength="60" aria-label="Nome do departamento" required></td>
       <td><select form="<%= f %>" name="funcao" aria-label="Alcance de <%= d.nome %>">
         <% funcoes.forEach((x) => { %><option value="<%= x %>"<%= x === d.funcao ? ' selected' : '' %>><%= fmt.funcao(x) %></option><% }) %></select></td>
+      <td><label class="marcar"><input form="<%= f %>" type="checkbox" name="lanca_conducao" value="1"<%= d.lanca_conducao ? ' checked' : '' %>> Lança condução</label></td>
       <td class="d num"><a href="/cadastros/usuarios?departamento=<%= d.id %>"><%= d.usuarios %></a></td>
       <td class="d"><form id="<%= f %>" method="post" action="/cadastros/departamentos/<%= d.id %>"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="botao" name="acao" value="salvar">Salvar</button></form></td>
       <td class="d"><% if (!d.usuarios) { %><button form="<%= f %>" class="link" name="acao" value="remover" data-confirmar="Remover o departamento <%= d.nome %>?">Remover</button><% } %></td>
@@ -21,6 +22,7 @@
   <input type="hidden" name="_csrf" value="<%= csrf %>">
   <label>Nome <input name="nome" maxlength="60" required></label>
   <label>Alcance <select name="funcao"><% funcoes.forEach((x) => { %><option value="<%= x %>"><%= fmt.funcao(x) %></option><% }) %></select></label>
+  <label class="marcar"><input type="checkbox" name="lanca_conducao" value="1"> Lança condução</label>
   <button class="botao primario">Criar departamento</button>
 </form>
 <%- include('partials/rodape') %>

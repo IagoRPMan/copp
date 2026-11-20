@@ -1,7 +1,7 @@
 const express = require('express');
 const { all, get, run, tx } = require('../db');
 const auth = require('../auth');
-const { nomeMaiusculo, emailMinusculo, emailValido, descricaoPadrao, descricaoValida } = require('../texto');
+const { nomeMaiusculo, emailMinusculo, emailValido, descricaoPadrao, descricaoValida, centavosDeReais } = require('../texto');
 const { usuariosAtivos, itensTodos, descricoesPadrao, departamentos, equipeDe, auditar, CONTAS, diaInicio, periodoDaRegra, competenciaDaRegra, aplicarRegraFechamento } = require('../dominio');
 
 const r = express.Router();
@@ -65,10 +65,8 @@ r.get('/itens', (req, res) => {
   res.render('itens', { itens: itensTodos().map((i) => ({ ...i, removivel: !i.tipo && !usados.has(i.id) })), contas: Object.values(CONTAS) });
 });
 
-function precoEmCentavos(texto) {
-  const m = /^\s*(\d{1,5})(?:[.,](\d{1,2}))?\s*$/.exec(String(texto || ''));
-  return m ? parseInt(m[1], 10) * 100 + parseInt((m[2] || '0').padEnd(2, '0'), 10) : null;
-}
+// Preço de tabela: até R$ 99.999,99.
+const precoEmCentavos = (texto) => centavosDeReais(texto, 9999999);
 
 // Item novo. Na conta de cópias ele serve para lançamentos manuais: a importação do PaperCut
 // continua usando só os três itens de origem (simples, colorida e dupla face).
@@ -107,9 +105,8 @@ r.post('/itens/:id', (req, res) => {
     }
     return res.redirect('/cadastros/itens');
   }
-  const m = /^\s*(\d{1,5})(?:[.,](\d{1,2}))?\s*$/.exec(item.valor_livre ? '0' : String(req.body.preco || ''));
-  if (!m) { auth.flash(req, 'erro', 'Informe o preço no formato 0,38.'); return res.redirect('/cadastros/itens'); }
-  const centavos = parseInt(m[1], 10) * 100 + parseInt((m[2] || '0').padEnd(2, '0'), 10);
+  const centavos = item.valor_livre ? 0 : precoEmCentavos(req.body.preco);
+  if (centavos === null) { auth.flash(req, 'erro', 'Informe o preço no formato 0,38.'); return res.redirect('/cadastros/itens'); }
   const descricao = String(req.body.descricao || '').trim().slice(0, 80) || item.descricao;
   // Cópia simples e colorida são a base da divisão das páginas e ficam sempre ativas; os demais itens podem ser desligados.
   const ativo = ['simples', 'colorida', 'duplex'].includes(item.tipo) ? 1 : (req.body.ativo ? 1 : 0);
@@ -237,15 +234,16 @@ r.post('/departamentos/:id', (req, res) => {
   const id = novo ? 0 : parseInt(req.params.id, 10) || 0;
   const nome = String(req.body.nome || '').trim().slice(0, 60);
   const funcao = FUNCOES.includes(req.body.funcao) ? req.body.funcao : 'comum';
+  const conducao = req.body.lanca_conducao ? 1 : 0;
   if (req.body.acao === 'remover' && id) {
     if (get('SELECT 1 AS x FROM usuarios WHERE departamento_id = ?', id)) auth.flash(req, 'erro', 'Há usuários neste departamento. Mova-os antes de remover.');
     else { run('DELETE FROM departamentos WHERE id = ?', id); auth.flash(req, 'ok', 'Departamento removido.'); }
   } else if (!nome) auth.flash(req, 'erro', 'Dê um nome ao departamento.');
   else if (get('SELECT 1 AS x FROM departamentos WHERE nome = ? AND id <> ?', nome, id)) auth.flash(req, 'erro', 'Já existe um departamento com este nome.');
   else {
-    if (novo) run('INSERT INTO departamentos (nome, funcao, ordem) VALUES (?,?,(SELECT COALESCE(MAX(ordem), 0) + 1 FROM departamentos))', nome, funcao);
-    else run('UPDATE departamentos SET nome = ?, funcao = ? WHERE id = ?', nome, funcao, id);
-    auditar(req.user.id, novo ? 'criou departamento' : 'alterou departamento', null, `${nome} (${funcao})`);
+    if (novo) run('INSERT INTO departamentos (nome, funcao, lanca_conducao, ordem) VALUES (?,?,?,(SELECT COALESCE(MAX(ordem), 0) + 1 FROM departamentos))', nome, funcao, conducao);
+    else run('UPDATE departamentos SET nome = ?, funcao = ?, lanca_conducao = ? WHERE id = ?', nome, funcao, conducao, id);
+    auditar(req.user.id, novo ? 'criou departamento' : 'alterou departamento', null, `${nome} (${funcao}${conducao ? ', lança condução' : ''})`);
     auth.flash(req, 'ok', 'Departamento salvo.');
   }
   res.redirect('/cadastros/departamentos');

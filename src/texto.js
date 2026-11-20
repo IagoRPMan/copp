@@ -17,4 +17,18 @@ const dataValida = (v) => {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 };
 
-module.exports = { dataValida, nomeMaiusculo, emailMinusculo, emailValido, perfilIncompleto, descricaoPadrao, descricaoValida };
+/**
+ * Valor em reais digitado no formato brasileiro ("12,50", "1.234,56", "0,38") → centavos.
+ * Aceita também ponto decimal ("12.50") vindo de versões antigas. Devolve null se não for um valor ou passar de "max" centavos.
+ */
+const centavosDeReais = (v, max = 99999999) => {
+  let s = String(v ?? '').trim().replace(/^R\$\s*/, '');
+  if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, '');
+  else if (/^\d+\.\d{1,2}$/.test(s)) s = s.replace('.', ',');
+  const m = /^(\d+)(?:,(\d{1,2}))?$/.exec(s);
+  if (!m) return null;
+  const c = parseInt(m[1], 10) * 100 + parseInt((m[2] || '0').padEnd(2, '0'), 10);
+  return c <= max ? c : null;
+};
+
+module.exports = { centavosDeReais, dataValida, nomeMaiusculo, emailMinusculo, emailValido, perfilIncompleto, descricaoPadrao, descricaoValida };

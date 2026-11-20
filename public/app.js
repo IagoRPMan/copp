@@ -170,6 +170,27 @@
   }
 })();
 
+// Valores em reais: a pessoa digita só os algarismos e o campo se forma sozinho, como numa maquininha.
+// 1 → 0,01 · 125 → 1,25 · 123456 → 1.234,56. Apagar tira o último algarismo. data-moeda = máximo de algarismos.
+(() => {
+  const formatar = (texto, max) => {
+    const d = String(texto).replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, max);
+    if (!d) return '';
+    const c = d.padStart(3, '0');
+    return c.slice(0, -2).replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + c.slice(-2);
+  };
+  document.querySelectorAll('input[data-moeda]').forEach((campo) => {
+    const max = Number(campo.dataset.moeda) || 10;
+    campo.setAttribute('autocomplete', 'off');
+    campo.value = formatar(campo.value, max);
+    campo.addEventListener('input', () => {
+      const novo = formatar(campo.value, max);
+      if (novo !== campo.value) campo.value = novo;
+      try { campo.setSelectionRange(novo.length, novo.length); } catch { /* sem cursor */ }
+    });
+  });
+})();
+
 // Nome sempre em MAIÚSCULAS e e-mail sempre em minúsculas, já enquanto a pessoa digita.
 (() => {
   const ajustar = (el) => {

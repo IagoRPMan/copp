@@ -1,6 +1,6 @@
 const express = require('express');
 const { all } = require('../db');
-const { competencias, periodoDaRegra, condominiosAtivos, contaDe, CONTAS, EMPRESA, fmt } = require('../dominio');
+const { competencias, periodoDaRegra, condominiosAtivos, contaDe, CONTAS, EMPRESA, EMPRESA_CURTA, fmt } = require('../dominio');
 
 const { dataValida } = require('../texto');
 
@@ -129,7 +129,7 @@ r.get('/', (req, res) => {
   const hora = (o) => agora.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', ...o });
   res.render('relatorios', {
     ...base(ctx, req), conta, condominio, modo,
-    emitido: `Emitido em ${hora({ day: '2-digit', month: '2-digit', year: 'numeric' })} às ${hora({ hour: '2-digit', minute: '2-digit' })} pela PROP STARTER`,
+    emitido: `Emitido em ${hora({ day: '2-digit', month: '2-digit', year: 'numeric' })} às ${hora({ hour: '2-digit', minute: '2-digit' })} pela ${EMPRESA_CURTA}`,
     relatorio: ctx.visivel ? porCondominio(ctx, conta.codigo, condominio) : null,
     pendencias: pendencias(ctx), condominios: condominiosAtivos(),
   });

@@ -123,6 +123,7 @@ CREATE INDEX IF NOT EXISTS ix_lt_trab ON lancamento_trabalhos (trabalho_id);
 function garantirColuna(tabela, coluna, definicao) {
   const tem = db.prepare(`PRAGMA table_info(${tabela})`).all().some((c) => c.name === coluna);
   if (!tem) db.exec(`ALTER TABLE ${tabela} ADD COLUMN ${coluna} ${definicao}`);
+  return !tem;
 }
 db.exec(`
 CREATE TABLE IF NOT EXISTS departamentos (
@@ -161,6 +162,10 @@ garantirColuna('importacoes', 'acrescidos', 'INTEGER NOT NULL DEFAULT 0');
 garantirColuna('usuarios', 'recuperacao_hash', 'TEXT');
 garantirColuna('usuarios', 'ultimo_acesso', 'TEXT');
 garantirColuna('usuarios', 'email', 'TEXT');
+// Lançar condução é tarefa da Expedição. Na primeira vez, a opção já nasce ligada para ela.
+if (garantirColuna('departamentos', 'lanca_conducao', 'INTEGER NOT NULL DEFAULT 0')) {
+  db.exec("UPDATE departamentos SET lanca_conducao = 1 WHERE UPPER(nome) IN ('EXPEDIÇÃO', 'EXPEDICAO')");
+}
 {
   // Descrições em MAIÚSCULAS: lista padrão e lançamentos ainda pendentes. Os liberados ficam como foram aprovados.
   const { descricaoPadrao, descricaoValida } = require('./texto');
@@ -261,7 +266,7 @@ if (!get('SELECT 1 AS x FROM descricoes LIMIT 1')) {
 if (!get('SELECT 1 AS x FROM departamentos LIMIT 1')) {
   const deptos = [['DIRETORIA', 'diretoria'], ['GERÊNCIA', 'gerencia'], ['CONTABILIDADE', 'contabilidade'], ['FINANCEIRO', 'comum'], ['RH', 'comum'],
     ['EXPEDIÇÃO', 'comum'], ['LOCAÇÃO', 'comum'], ['CADASTRO', 'comum'], ['PROVIDÊNCIAS', 'comum'], ['NORMAS', 'comum'], ['RECEPÇÃO', 'comum']];
-  deptos.forEach(([nome, funcao], i) => run('INSERT INTO departamentos (nome, funcao, ordem) VALUES (?,?,?)', nome, funcao, i + 1));
+  deptos.forEach(([nome, funcao], i) => run('INSERT INTO departamentos (nome, funcao, ordem, lanca_conducao) VALUES (?,?,?,?)', nome, funcao, i + 1, nome === 'EXPEDIÇÃO' ? 1 : 0));
 }
 // O antigo perfil "contabilidade" virou departamento: todo mundo que não é administrador é usuário comum.
 run(`UPDATE usuarios SET papel = 'responsavel', departamento_id = COALESCE(departamento_id, (SELECT id FROM departamentos WHERE funcao = 'contabilidade' ORDER BY ordem LIMIT 1))

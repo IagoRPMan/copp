@@ -16,6 +16,10 @@ Environment=HOST=127.0.0.1
 Environment=DATA_DIR=/var/lib/copp
 Environment=COOKIE_SEGURO=1
 Environment=TZ=America/Sao_Paulo
+# Identidade da administradora (aparece nas folhas do relatório e na entrada):
+# Environment="EMPRESA_NOME=Administradora Exemplo - Administração de Imóveis"
+# Environment="EMPRESA_CURTA=ADMINISTRADORA EXEMPLO"
+# Environment=EMPRESA_LOGO=/var/lib/copp/marca/logo.png
 
 # Endurecimento: o servico so escreve na pasta de dados.
 NoNewPrivileges=true

@@ -32,7 +32,7 @@
     <label>Quantidade <input name="quantidade" inputmode="numeric" pattern="[0-9]{1,7}" value="<%= l.quantidade %>" required></label>
     <label>Data <input type="date" name="data" value="<%= l.data %>" required></label>
     <% if (conducao) { %>
-    <label>Valor (R$) <input name="valor" inputmode="decimal" value="<%= l.valor !== undefined ? l.valor : (l.valor_livre ? fmt.dec(l.preco_centavos) : '') %>" maxlength="12" placeholder="0,00"><small>Só para o trajeto "Valor específico". Os outros têm preço de tabela.</small></label>
+    <label>Valor (R$) <input name="valor" inputmode="numeric" data-moeda="8" value="<%= l.valor !== undefined ? l.valor : (l.valor_livre ? fmt.dec(l.preco_centavos) : '') %>" maxlength="12" placeholder="0,00"><small>Só para o trajeto "Valor específico". Os outros têm preço de tabela.</small></label>
     <% } %>
     <label class="largo">Descrição da despesa
       <input name="descricao" value="<%= l.descricao %>" maxlength="300" list="descricoes" data-caixa="alta" required>

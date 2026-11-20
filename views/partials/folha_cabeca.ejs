@@ -1,5 +1,5 @@
 <header class="folha-cabeca">
-  <img class="folha-logo" src="/logo-propstarter.jpg" alt="Prop Starter Condomínios">
+  <% if (empresaLogo) { %><img class="folha-logo" src="/marca/logo" alt="<%= empresa %>"><% } else { %><span class="folha-logo folha-logo-copp" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg></span><% } %>
   <div class="folha-ident">
     <p class="folha-empresa"><%= empresa %></p>
     <p class="folha-titulo"><%= conta.tituloFolha %><% if (emConferencia.length) { %> <span class="folha-previa">PRÉVIA</span><% } %></p>

@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { get, run, tx } = require('./src/db');
 const auth = require('./src/auth');
-const { fmt, auditar } = require('./src/dominio');
+const { fmt, auditar, EMPRESA, EMPRESA_LOGO } = require('./src/dominio');
 const { nomeMaiusculo, emailMinusculo, emailValido } = require('./src/texto');
 
 auth.garantirAdmin();
@@ -27,6 +27,10 @@ app.use((req, res, next) => {
 // Sem prazo de cache: o navegador revalida a cada visita (resposta 304, barata) e uma
 // correção de estilo ou script aparece na hora, sem precisar de Ctrl+F5.
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0 }));
+
+// Logo da administradora, se configurada em EMPRESA_LOGO (fica fora do repositório, junto dos dados).
+const temLogo = !!EMPRESA_LOGO && fs.existsSync(EMPRESA_LOGO);
+app.get('/marca/logo', (req, res) => (temLogo ? res.sendFile(path.resolve(EMPRESA_LOGO)) : res.sendStatus(404)));
 
 // Verificação de saúde para monitor externo (UptimeRobot e parecidos): responde 200 se o banco responde.
 // Não exige login e não revela nada além de "está no ar".
@@ -53,6 +57,8 @@ const VERSAO = (() => {
 })();
 app.use((req, res, next) => {
   res.locals.fmt = fmt;
+  res.locals.empresaNome = EMPRESA;
+  res.locals.empresaLogo = temLogo;
   res.locals.versao = VERSAO;
   res.locals.caminho = req.path;
   res.setHeader('Cache-Control', 'no-store');
@@ -152,7 +158,7 @@ function lerDados(b) {
   const email = emailMinusculo(b.email);
   let erro = null;
   if (nome.split(' ').length < 2) erro = 'Informe seu nome completo, com sobrenome.';
-  else if (!emailValido(email)) erro = 'Informe um e-mail válido, como nome@propstarter.com.br.';
+  else if (!emailValido(email)) erro = 'Informe um e-mail válido, como nome@empresa.com.br.';
   return { nome, email, erro };
 }
 const telaConta = (req, extra = {}) => ({ erro: null, erroCodigo: null, erroDados: null, dados: { nome: req.user.completarPerfil && req.user.nome.toUpperCase() === req.user.login.toUpperCase() ? '' : req.user.nome, email: req.user.email }, ...extra });
